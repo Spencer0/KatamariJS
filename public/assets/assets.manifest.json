@@ -1,0 +1,57 @@
+[
+  {
+    "id": "pickup.apple.v1",
+    "glbPath": "/assets/glb/pickup.apple.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 0.35,
+    "mass": 1,
+    "valueTier": 1,
+    "tags": ["food", "starter"],
+    "status": "active"
+  },
+  {
+    "id": "pickup.orange.v1",
+    "glbPath": "/assets/glb/pickup.orange.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 0.45,
+    "mass": 1.4,
+    "valueTier": 1,
+    "tags": ["food"],
+    "status": "active"
+  },
+  {
+    "id": "pickup.box.v1",
+    "glbPath": "/assets/glb/pickup.box.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 0.65,
+    "mass": 2.3,
+    "valueTier": 2,
+    "tags": ["prop"],
+    "status": "active"
+  },
+  {
+    "id": "prop.chair.v2",
+    "glbPath": "/assets/glb/prop.chair.v2.glb",
+    "category": "prop",
+    "scale": 1,
+    "pickupRadius": 1.8,
+    "mass": 8,
+    "valueTier": 4,
+    "tags": ["furniture"],
+    "status": "active"
+  },
+  {
+    "id": "pickup.apple.v0",
+    "glbPath": "/assets/glb/pickup.apple.v0.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 0.3,
+    "mass": 0.9,
+    "valueTier": 1,
+    "tags": ["legacy"],
+    "status": "deprecated"
+  }
+]
