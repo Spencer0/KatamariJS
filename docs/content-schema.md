@@ -13,6 +13,20 @@ interface AssetManifestEntry {
   tags: string[];
   attachPoint?: string;
   status: "active" | "deprecated";
+  biome?: "forest" | "city" | "suburb";
+  styleTags?: string[];
+  qualityScore?: number;
+}
+```
+
+## Audio Track Entry
+```ts
+interface AudioTrackManifestEntry {
+  id: string;
+  path: string;
+  loop: boolean;
+  volume: number;
+  status: "active" | "deprecated";
 }
 ```
 
@@ -28,3 +42,4 @@ interface AssetManifestEntry {
 ## Validation
 - Required fields must exist and pass type checks.
 - Positive numeric constraints: `scale`, `pickupRadius`, `mass`.
+- Recommended quality gate: `qualityScore >= 65`.

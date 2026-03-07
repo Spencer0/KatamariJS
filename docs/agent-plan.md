@@ -1,26 +1,26 @@
 # Agent Plan
 
-## Phase 1: Project Bootstrap
-- Initialize Vite + TypeScript + Three.js.
-- Add lint/test/typecheck scripts and CI-ready commands.
-- Done when build/test/typecheck pass locally.
+## Phase 1: Planet Locomotion
+- Replace flat plane with spherical world traversal.
+- Add radius-based movement tuning curves.
+- Done when player can circle planet continuously.
 
-## Phase 2: Data Contracts
-- Implement shared interfaces and manifest schema validation.
-- Add starter manifest and sample entries.
-- Done when manifest tests cover invalid/missing fields.
+## Phase 2: Biomes + Hazards
+- Implement forest/city/suburb sectors on one sphere.
+- Add ocean/lake hazard detection and respawn penalty.
+- Done when water collision triggers respawn and mass reduction.
 
-## Phase 3: Playable Loop
-- Implement player movement, pickup attachment, growth, and win state.
-- Add UI overlay for progress and victory.
-- Done when level can be completed from fresh launch.
+## Phase 3: UI/Game States
+- Add loading progress bar.
+- Add pause menu on `Esc` with reset + mute.
+- Done when load, pause, play, respawn, and win states are visible.
 
-## Phase 4: Input Expansion
-- Add mobile touch controls and gamepad mapping.
-- Tune camera + movement parity across platforms.
-- Done when desktop + mobile control paths both complete level.
+## Phase 4: Audio
+- Load audio track manifest and start active track.
+- Support mute toggle in menu.
+- Done when track loops and mute state is reflected in UI.
 
-## Phase 5: Asset Swap Reliability
-- Ensure missing glb uses primitive fallback.
-- Add integration test validating swap behavior without gameplay code edits.
-- Done when replacing one manifest path changes visuals only.
+## Phase 5: Asset Pipeline Scale
+- Expand manifest metadata (`biome`, `styleTags`, `qualityScore`).
+- Add validation report checks and workflow docs.
+- Done when 20 hero assets are represented in manifest and validation passes.

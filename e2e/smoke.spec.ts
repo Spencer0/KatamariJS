@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('game boots without manifest 404 and exits loading state', async ({ page }) => {
+test('game boots, shows loading progress, supports pause menu, and handles water respawn', async ({ page }) => {
   const consoleErrors: string[] = [];
   const failedRequests: string[] = [];
 
@@ -16,8 +16,21 @@ test('game boots without manifest 404 and exits loading state', async ({ page })
 
   await page.goto('/');
 
-  await expect(page.locator('.phase')).toContainText('Roll and absorb', { timeout: 10000 });
+  await expect(page.locator('.loading-shell')).toHaveCount(1);
+  await expect(page.locator('.phase')).toContainText('Roll around the planet', { timeout: 10000 });
   await expect(page.locator('.hud')).toContainText('Score:');
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.pause-menu')).toBeVisible();
+
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.pause-menu')).toBeHidden();
+
+  await page.evaluate(() => {
+    (window as unknown as { __katamariDebug: { forceWaterFall: () => void } }).__katamariDebug.forceWaterFall();
+  });
+
+  await expect(page.locator('.phase')).toContainText('Roll around the planet', { timeout: 5000 });
 
   const manifestErrors = consoleErrors.filter((msg) => msg.includes('Failed to load manifest'));
   const manifestFailures = failedRequests.filter((msg) => msg.includes('assets.manifest.json'));

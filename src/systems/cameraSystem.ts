@@ -2,24 +2,45 @@ import { Vector3 } from 'three';
 import type { Camera, Mesh } from 'three';
 import type { WorldState } from '../game/types';
 
-const desiredOffset = new Vector3(0, 5.5, 8.5);
-const lookAtOffset = new Vector3(0, 1.3, 0);
-const tempTarget = new Vector3();
-const tempPosition = new Vector3();
+const radialUp = new Vector3();
+const tangentForward = new Vector3();
+const tangentRight = new Vector3();
+const desiredPosition = new Vector3();
+const lookTarget = new Vector3();
 
 export class CameraSystem {
+  private yaw = 0;
+  private pitch = 0.35;
+
   constructor(private readonly camera: Camera, private readonly playerMesh: Mesh) {}
 
   update(dt: number, world: WorldState): void {
-    desiredOffset.x += world.input.cameraX * dt * 4;
-    desiredOffset.z += world.input.cameraY * dt * 2;
-    desiredOffset.z = Math.max(5, Math.min(11, desiredOffset.z));
-    desiredOffset.x = Math.max(-4, Math.min(4, desiredOffset.x));
+    radialUp.copy(this.playerMesh.position).normalize();
 
-    tempTarget.copy(this.playerMesh.position).add(lookAtOffset);
-    tempPosition.copy(this.playerMesh.position).add(desiredOffset);
+    tangentForward.copy(world.player.velocity);
+    if (tangentForward.lengthSq() < 0.0001) {
+      tangentForward.copy(new Vector3(0, 0, 1)).projectOnPlane(radialUp).normalize();
+    } else {
+      tangentForward.projectOnPlane(radialUp).normalize();
+    }
 
-    this.camera.position.lerp(tempPosition, 0.08);
-    this.camera.lookAt(tempTarget);
+    tangentRight.copy(radialUp).cross(tangentForward).normalize();
+
+    this.yaw += world.input.cameraX * dt * 1.9;
+    this.pitch = Math.max(-0.6, Math.min(0.9, this.pitch + world.input.cameraY * dt * 0.9));
+
+    const followDistance = 8 + world.player.radius * 0.4;
+    const height = 3.2 + world.player.radius * 0.25;
+
+    const back = tangentForward.clone().multiplyScalar(-followDistance);
+    const side = tangentRight.clone().multiplyScalar(Math.sin(this.yaw) * 2.2);
+    const up = radialUp.clone().multiplyScalar(height + Math.sin(this.pitch) * 1.5);
+
+    desiredPosition.copy(this.playerMesh.position).add(back).add(side).add(up);
+    lookTarget.copy(this.playerMesh.position).add(radialUp.clone().multiplyScalar(world.player.radius * 0.7));
+
+    this.camera.position.lerp(desiredPosition, 0.12);
+    this.camera.up.copy(radialUp);
+    this.camera.lookAt(lookTarget);
   }
 }

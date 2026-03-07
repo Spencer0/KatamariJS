@@ -2,34 +2,37 @@
 
 ## Stack
 - Vite + TypeScript + Three.js
-- Runtime validation with Zod
-- Testing with Vitest
+- Zod runtime validation
+- Vitest + Playwright tests
 
 ## Runtime Architecture
-- `Game` owns renderer, scene, camera, world state, and update loop.
-- Systems execute in fixed order each frame:
+- `Game` orchestrates scene, world state, and phased startup.
+- Systems run in order:
   1. InputSystem
-  2. MovementSystem
+  2. MovementSystem (spherical tangent locomotion)
   3. PickupSystem
   4. GrowthSystem
-  5. CameraSystem
-  6. UISystem
+  5. Hazard/Respawn check
+  6. CameraSystem
+  7. UISystem
 
-## Hybrid Physics Model
-- Lightweight player motion integration (velocity + damping).
-- Pickup interaction uses scripted sphere-overlap checks.
-- No full rigidbody world in v1.
+## World + Movement
+- Player constrained to planet surface (`planetRadius + playerRadius`).
+- Movement velocity is projected to tangent plane every frame.
+- Curved movement tuning uses radius-based interpolation curves.
 
-## Data Flow
-- Asset manifest (`public/assets/assets.manifest.json`) is loaded at startup.
-- Manifest entries hydrate pickup descriptors.
-- Runtime logic uses descriptors; render meshes can be swapped without gameplay code changes.
+## Biomes + Hazards
+- Planet sectors map to `forest`, `city`, `suburb`.
+- Water masks (ocean belt + lake patches) trigger quick respawn + mass penalty.
 
-## Performance Targets
-- Desktop target: 60 FPS.
-- Mobile target: >=30 FPS.
-- V1 object count: ~50 pickups.
+## Loading + UI
+- Loading progress tracks manifest fetch, pickup spawn, and audio setup.
+- Escape toggles pause state and menu.
+
+## Audio
+- Audio manifest driven.
+- Current active track uses synth-loop fallback path (`synth://...`).
 
 ## Failure Handling
-- If `.glb` load fails, spawn primitive fallback mesh and continue.
-- Invalid manifest schema throws a startup-visible error.
+- Missing `.glb` falls back to primitive mesh.
+- Manifest parse errors fail startup stage but keep app alive for debugging.

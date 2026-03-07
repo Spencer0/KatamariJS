@@ -9,6 +9,18 @@ if (!app) {
 const game = new Game(app);
 void game.start();
 
+interface DebugWindow extends Window {
+  __katamariDebug?: {
+    forceWaterFall: () => void;
+    phase: () => string;
+  };
+}
+
+(window as DebugWindow).__katamariDebug = {
+  forceWaterFall: () => game.debugForceWaterFall(),
+  phase: () => game.debugPhase(),
+};
+
 window.addEventListener('beforeunload', () => {
   game.dispose();
 });

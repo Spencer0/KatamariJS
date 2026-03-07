@@ -1,0 +1,9 @@
+[
+  {
+    "id": "bgm.katamari-synth.v1",
+    "path": "synth://katamari-loop-a",
+    "loop": true,
+    "volume": 0.8,
+    "status": "active"
+  }
+]

@@ -1,32 +1,32 @@
 # Game Spec
 
 ## Goal
-Ship a Katamari-inspired v1 playable loop for web (desktop + mobile): roll, collect, grow, and win.
+Ship a Katamari-inspired vertical slice for web (desktop + mobile): spherical traversal, collect, grow, avoid water, and win.
 
 ## Core Loop
-1. Player rolls the ball over a small map.
-2. Pickups that are below the size threshold attach to the ball.
-3. Attached pickups increase mass and effective radius.
-4. Player reaches the win radius to finish the level.
+1. Player rolls around a spherical planet.
+2. Pickups below the size threshold attach to the ball.
+3. Attached pickups increase mass and radius, unlocking larger objects.
+4. Water hazards trigger quick respawn with size penalty.
+5. Reach target radius to win the run.
+
+## World
+- Planet is continuous (no hard world edge).
+- Three large biomes: `forest`, `city`, `suburb`.
+- Oceans and lakes are lethal hazard zones.
 
 ## Player States
-- `loading`: Asset manifest and scene setup.
-- `playing`: Core loop active.
-- `won`: Win overlay shown with restart action.
+- `loading`: manifests/assets are loading with progress bar.
+- `playing`: core loop active.
+- `paused`: escape menu with reset + mute.
+- `respawning`: transient state after water fall.
+- `won`: victory state.
 
 ## Controls
-- Desktop: `WASD` or arrow keys for movement, `Shift` boost.
-- Mobile: left-side virtual joystick for movement, right-side drag for camera yaw.
-- Gamepad (v1-compatible): left stick movement, south button boost.
+- Desktop: `WASD`/arrows to move, `Shift` boost, `Esc` pause.
+- Mobile: left touch move, right touch camera.
+- Gamepad compatible with left stick + south button boost.
 
-## Pickup Rules
-- Pickup eligibility: `pickupRadius <= playerRadius * pickupAttachFactor`.
-- Eligible pickups attach and stop simulating independently.
-- Ineligible pickups remain in world.
-- Value tiers and mass contribute to score + growth.
-
-## Win Condition
-- Win when effective player radius reaches `targetWinRadius`.
-
-## Non-goals
-- Multiplayer, persistence, backend services, authored story content.
+## Audio
+- Single AI-generated/original style BGM loop via audio manifest.
+- Mute toggle in pause menu.

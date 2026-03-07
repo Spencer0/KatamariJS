@@ -14,6 +14,9 @@ describe('asset swap behavior', () => {
         valueTier: 1,
         tags: ['food'],
         status: 'active',
+        biome: 'suburb',
+        styleTags: ['anime'],
+        qualityScore: 77,
       },
     ]);
 
@@ -28,6 +31,9 @@ describe('asset swap behavior', () => {
         valueTier: 1,
         tags: ['food'],
         status: 'active',
+        biome: 'suburb',
+        styleTags: ['anime'],
+        qualityScore: 77,
       },
     ]);
 
@@ -35,5 +41,6 @@ describe('asset swap behavior', () => {
     expect(resolveVisualPath(swapped, 'pickup.apple.v1')).toBe('/apple-b.glb');
     expect(swapped[0].mass).toBe(base[0].mass);
     expect(swapped[0].pickupRadius).toBe(base[0].pickupRadius);
+    expect(swapped[0].biome).toBe(base[0].biome);
   });
 });
