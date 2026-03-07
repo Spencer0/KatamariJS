@@ -3,41 +3,47 @@ import type { Camera, Mesh } from 'three';
 import type { WorldState } from '../game/types';
 
 const radialUp = new Vector3();
-const tangentForward = new Vector3();
-const tangentRight = new Vector3();
+const side = new Vector3();
 const desiredPosition = new Vector3();
 const lookTarget = new Vector3();
+const fallback = new Vector3(0, 0, 1);
 
 export class CameraSystem {
-  private yaw = 0;
-  private pitch = 0.35;
+  private orbitForward = new Vector3(0, 0, 1);
+  private yawVelocity = 0;
 
   constructor(private readonly camera: Camera, private readonly playerMesh: Mesh) {}
 
   update(dt: number, world: WorldState): void {
     radialUp.copy(this.playerMesh.position).normalize();
 
-    tangentForward.copy(world.player.velocity);
-    if (tangentForward.lengthSq() < 0.0001) {
-      tangentForward.copy(new Vector3(0, 0, 1)).projectOnPlane(radialUp).normalize();
-    } else {
-      tangentForward.projectOnPlane(radialUp).normalize();
+    this.orbitForward.projectOnPlane(radialUp);
+    if (this.orbitForward.lengthSq() < 1e-6) {
+      this.orbitForward.copy(fallback).projectOnPlane(radialUp);
+      if (this.orbitForward.lengthSq() < 1e-6) {
+        this.orbitForward.set(1, 0, 0).projectOnPlane(radialUp);
+      }
+    }
+    this.orbitForward.normalize();
+
+    this.yawVelocity = this.yawVelocity * 0.82 + world.input.cameraX * 2.2;
+    if (Math.abs(this.yawVelocity) > 1e-4) {
+      this.orbitForward.applyAxisAngle(radialUp, this.yawVelocity * dt);
+      this.orbitForward.projectOnPlane(radialUp).normalize();
     }
 
-    tangentRight.copy(radialUp).cross(tangentForward).normalize();
+    side.copy(radialUp).cross(this.orbitForward).normalize();
 
-    this.yaw += world.input.cameraX * dt * 1.9;
-    this.pitch = Math.max(-0.6, Math.min(0.9, this.pitch + world.input.cameraY * dt * 0.9));
+    const followDistance = 8 + world.player.radius * 0.45;
+    const height = 3.3 + world.player.radius * 0.22;
 
-    const followDistance = 8 + world.player.radius * 0.4;
-    const height = 3.2 + world.player.radius * 0.25;
+    desiredPosition
+      .copy(this.playerMesh.position)
+      .addScaledVector(this.orbitForward, -followDistance)
+      .addScaledVector(radialUp, height)
+      .addScaledVector(side, world.input.cameraY * 1.25);
 
-    const back = tangentForward.clone().multiplyScalar(-followDistance);
-    const side = tangentRight.clone().multiplyScalar(Math.sin(this.yaw) * 2.2);
-    const up = radialUp.clone().multiplyScalar(height + Math.sin(this.pitch) * 1.5);
-
-    desiredPosition.copy(this.playerMesh.position).add(back).add(side).add(up);
-    lookTarget.copy(this.playerMesh.position).add(radialUp.clone().multiplyScalar(world.player.radius * 0.7));
+    lookTarget.copy(this.playerMesh.position).addScaledVector(radialUp, world.player.radius * 0.65);
 
     this.camera.position.lerp(desiredPosition, 0.12);
     this.camera.up.copy(radialUp);

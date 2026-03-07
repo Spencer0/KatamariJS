@@ -100,7 +100,7 @@ export class Game {
     this.camera.position.set(0, 60, 80);
 
     this.inputSystem = new InputSystem(this.renderer.domElement);
-    this.movementSystem = new MovementSystem(this.playerMesh);
+    this.movementSystem = new MovementSystem(this.playerMesh, this.camera);
     this.pickupSystem = new PickupSystem(this.playerMesh);
     this.growthSystem = new GrowthSystem(this.playerMesh);
     this.cameraSystem = new CameraSystem(this.camera, this.playerMesh);

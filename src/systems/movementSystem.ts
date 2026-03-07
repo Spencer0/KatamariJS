@@ -1,36 +1,41 @@
 import { Quaternion, Vector3 } from 'three';
-import type { Mesh } from 'three';
+import type { Camera, Mesh } from 'three';
 import { sampleCurve } from '../game/logic';
 import type { WorldState } from '../game/types';
 
-const worldUp = new Vector3(0, 1, 0);
 const radialUp = new Vector3();
-const forwardHint = new Vector3();
-const tangentForward = new Vector3();
-const tangentRight = new Vector3();
+const cameraForward = new Vector3();
+const moveForward = new Vector3();
+const moveRight = new Vector3();
 const desiredAccel = new Vector3();
+const normalComponent = new Vector3();
 const targetSurfacePoint = new Vector3();
 const rotationAxis = new Vector3();
 const alignmentQuat = new Quaternion();
+const worldUp = new Vector3(0, 1, 0);
 
 export class MovementSystem {
-  constructor(private readonly playerMesh: Mesh) {}
+  constructor(private readonly playerMesh: Mesh, private readonly camera: Camera) {}
 
   update(dt: number, world: WorldState): void {
     radialUp.copy(this.playerMesh.position).normalize();
 
-    forwardHint.copy(this.playerMesh.position).cross(worldUp);
-    if (forwardHint.lengthSq() < 1e-4) {
-      forwardHint.set(1, 0, 0);
+    this.camera.getWorldDirection(cameraForward);
+    moveForward.copy(cameraForward).projectOnPlane(radialUp);
+    if (moveForward.lengthSq() < 1e-6) {
+      moveForward.copy(worldUp).projectOnPlane(radialUp);
+      if (moveForward.lengthSq() < 1e-6) {
+        moveForward.set(0, 0, 1).projectOnPlane(radialUp);
+      }
     }
+    moveForward.normalize();
 
-    tangentForward.copy(forwardHint).cross(radialUp).normalize();
-    tangentRight.copy(radialUp).cross(tangentForward).normalize();
+    moveRight.copy(moveForward).cross(radialUp).normalize();
 
     desiredAccel
-      .copy(tangentRight)
+      .copy(moveRight)
       .multiplyScalar(world.input.moveX)
-      .addScaledVector(tangentForward, world.input.moveY);
+      .addScaledVector(moveForward, world.input.moveY);
 
     if (desiredAccel.lengthSq() > 1) {
       desiredAccel.normalize();
@@ -43,7 +48,7 @@ export class MovementSystem {
 
     world.player.velocity.addScaledVector(desiredAccel, accel * speedMultiplier * dt);
 
-    const normalComponent = radialUp.clone().multiplyScalar(world.player.velocity.dot(radialUp));
+    normalComponent.copy(radialUp).multiplyScalar(world.player.velocity.dot(radialUp));
     world.player.velocity.sub(normalComponent);
 
     const max = maxSpeed * speedMultiplier;
@@ -59,7 +64,7 @@ export class MovementSystem {
 
     radialUp.copy(this.playerMesh.position).normalize();
     alignmentQuat.setFromUnitVectors(worldUp, radialUp);
-    this.playerMesh.quaternion.slerp(alignmentQuat, 0.25);
+    this.playerMesh.quaternion.slerp(alignmentQuat, 0.2);
 
     rotationAxis.copy(radialUp).cross(world.player.velocity);
     const spin = (world.player.velocity.length() / Math.max(0.001, world.player.radius)) * dt;
