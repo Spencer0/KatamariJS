@@ -13,7 +13,9 @@
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
     "e2e": "playwright test",
     "assets:validate": "node scripts/validate-assets.mjs",
-    "assets:prompts": "node scripts/generate-asset-prompts.mjs --out docs/asset-prompts.generated.md"
+    "assets:prompts": "node scripts/generate-asset-prompts.mjs --out docs/asset-prompts.generated.md",
+    "assets:build-one": "node scripts/build-asset.mjs --id pickup.apple.v2",
+    "assets:build": "node scripts/build-asset.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

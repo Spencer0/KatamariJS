@@ -35,3 +35,18 @@ Use this base prompt for asset generation agents:
 ## Prompt Generation
 - Run `npm run assets:prompts` to generate agent-ready prompts from the current manifest.
 - Output file: `docs/asset-prompts.generated.md`.
+
+## Headless Blender Pipeline
+- `scripts/build-asset.mjs` reads one asset entry from manifest and calls Blender headless.
+- Blender command pattern:
+  - `blender --background --factory-startup --python scripts/blender_generate_asset.py -- --asset-id ... --output ...`
+- Local commands:
+  - `npm run assets:build-one` (example `pickup.apple.v2`)
+  - `npm run assets:build -- --id pickup.lantern.v1`
+  - `npm run assets:build -- --id pickup.orange.v2 --use-llm` (requires `DEEPSEEK_API_KEY`)
+
+## Setup Notes
+- Default Blender path expected by scripts:
+  - `tools/blender/blender-4.2.3-windows-x64/blender.exe`
+- If Blender is installed elsewhere, set:
+  - `BLENDER_BIN=<absolute path to blender.exe>`
