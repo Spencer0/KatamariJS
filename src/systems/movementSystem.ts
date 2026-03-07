@@ -1,7 +1,6 @@
 import { Quaternion, Vector3 } from 'three';
 import type { Camera, Object3D } from 'three';
 import {
-  applySoftSpeedCap,
   approximateAngularAcceleration,
   clampVectorMagnitude,
   computeHandContactState,
@@ -153,7 +152,10 @@ export class MovementSystem {
     world.player.heading.copy(headingForward);
 
     if (driveInputMagnitude > 0.001) {
-      const targetLinearSpeed = sampleCurve(world.config.movementTuning.targetLinearSpeedCurveByRadius, world.player.radius)
+      const targetLinearSpeed = (
+        world.config.movementTuning.speedRadiusScale
+        * Math.pow(world.player.radius / Math.max(0.0001, world.config.baseRadius), world.config.movementTuning.speedRadiusExponent)
+      )
         * driveInputMagnitude
         * speedMultiplier;
       desiredLinear.copy(world.player.intentDirection).multiplyScalar(targetLinearSpeed);
@@ -173,18 +175,6 @@ export class MovementSystem {
     projectedVelocity.copy(world.player.velocity).projectOnPlane(radialUp);
     const blend = Math.min(1, dt * (8 + sampleCurve(world.config.movementTuning.accelCurveByRadius, world.player.radius) * 0.25));
     projectedVelocity.lerp(linearFromRoll, blend);
-
-    const targetSpeedForCap = sampleCurve(world.config.movementTuning.targetLinearSpeedCurveByRadius, world.player.radius) * speedMultiplier;
-    const softCap = targetSpeedForCap * (1 + world.config.movementTuning.maxSpeedHeadroomPct);
-    const hardCap = Math.max(softCap, sampleCurve(world.config.movementTuning.maxSpeedCurveByRadius, world.player.radius) * speedMultiplier);
-    const currentSpeed = projectedVelocity.length();
-    const softenedSpeed = applySoftSpeedCap(currentSpeed, softCap, 0.2);
-    if (softenedSpeed < currentSpeed) {
-      projectedVelocity.setLength(softenedSpeed);
-    }
-    if (projectedVelocity.length() > hardCap) {
-      projectedVelocity.setLength(hardCap);
-    }
 
     world.player.velocity.copy(projectedVelocity);
     this.playerBody.position.addScaledVector(world.player.velocity, dt);

@@ -86,11 +86,13 @@ export const defaultConfig: GameConfig = {
     coastDamping: 2.6,
     maxSpeedHeadroomPct: 0.18,
     baseFollowDistance: 8,
-    distanceScale: 7.2,
-    cameraDistanceExponent: 0.8,
+    distanceScale: 5.2,
+    cameraDistanceExponent: 0.62,
     baseFollowHeight: 3.3,
-    heightScale: 2.6,
-    cameraHeightExponent: 0.72,
+    heightScale: 2.1,
+    cameraHeightExponent: 0.58,
+    speedRadiusScale: 5.4,
+    speedRadiusExponent: 0.9,
   },
 };
 

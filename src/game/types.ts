@@ -93,6 +93,8 @@ export interface MovementTuning {
   baseFollowHeight: number;
   heightScale: number;
   cameraHeightExponent: number;
+  speedRadiusScale: number;
+  speedRadiusExponent: number;
 }
 
 export interface GameConfig {

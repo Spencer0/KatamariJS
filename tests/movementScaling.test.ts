@@ -5,18 +5,21 @@ import {
   dampingFactor,
   desiredAngularVelocityFromLinear,
 } from '../src/game/compositePhysics';
-import { sampleCurve } from '../src/game/logic';
 
 describe('radius-positive speed tuning', () => {
-  it('target speed curve increases with radius and hits ~7 at r=1.3', () => {
-    const curve = defaultConfig.movementTuning.targetLinearSpeedCurveByRadius;
-    const r06 = sampleCurve(curve, 0.6);
-    const r13 = sampleCurve(curve, 1.3);
-    const r28 = sampleCurve(curve, 2.8);
+  it('radius speed function increases with radius and is effectively unbounded', () => {
+    const speedForRadius = (r: number) => (
+      defaultConfig.movementTuning.speedRadiusScale
+      * Math.pow(r / defaultConfig.baseRadius, defaultConfig.movementTuning.speedRadiusExponent)
+    );
+    const r06 = speedForRadius(0.6);
+    const r13 = speedForRadius(1.3);
+    const r28 = speedForRadius(2.8);
+    const r12 = speedForRadius(12);
 
     expect(r13).toBeGreaterThan(r06);
     expect(r28).toBeGreaterThan(r13);
-    expect(r13).toBeCloseTo(7, 3);
+    expect(r12).toBeGreaterThan(r28);
   });
 
   it('converts desired linear velocity to angular velocity consistently', () => {

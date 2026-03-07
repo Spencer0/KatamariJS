@@ -7,6 +7,8 @@ import type { WorldState } from '../game/types';
 const pickupWorld = new Vector3();
 const offset = new Vector3();
 const direction = new Vector3();
+const localAttach = new Vector3();
+const pushOut = new Vector3();
 
 function protrusionShapeClass(id: string): 'round' | 'boxy' | 'elongated' {
   const lower = id.toLowerCase();
@@ -41,13 +43,31 @@ export class PickupSystem {
       }
 
       if (!canAttachPickup(world.player.radius, pickup.radius, world.config)) {
+        const penetration = Math.max(0, collisionDistance - distance);
+        if (penetration > 0.0001) {
+          pushOut.copy(direction).multiplyScalar(-penetration * 0.85);
+          this.playerBody.position.add(pushOut);
+          world.playerPosition.copy(this.playerBody.position);
+        }
+
+        const toward = world.player.velocity.dot(direction);
+        if (toward > 0) {
+          world.player.velocity.addScaledVector(direction, -toward * 1.05);
+          world.player.velocity.multiplyScalar(0.92);
+          world.player.angularVelocity.multiplyScalar(0.94);
+        }
         continue;
       }
 
       pickup.attached = true;
 
       const attachDistance = world.player.composite.coreRadius + pickup.visualRadius - pickup.attachDepth;
-      pickup.attachOffset.copy(direction.multiplyScalar(attachDistance));
+      localAttach
+        .copy(direction)
+        .applyQuaternion(this.playerBody.quaternion.clone().invert())
+        .normalize()
+        .multiplyScalar(attachDistance);
+      pickup.attachOffset.copy(localAttach);
       this.playerBody.add(pickup.mesh);
       pickup.mesh.position.copy(pickup.attachOffset);
 
