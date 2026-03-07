@@ -11,11 +11,13 @@ import { sampleCurve } from '../game/logic';
 import type { WorldState } from '../game/types';
 
 const radialUp = new Vector3();
-const cameraForward = new Vector3();
-const moveForward = new Vector3();
-const moveRight = new Vector3();
-const desiredDir = new Vector3();
+const headingForward = new Vector3();
+const headingRight = new Vector3();
+const desiredRollDir = new Vector3();
+const forwardDir = new Vector3();
+const lateralDir = new Vector3();
 const torqueWorld = new Vector3();
+const spinTorque = new Vector3();
 const settleTorque = new Vector3();
 const angularDelta = new Vector3();
 const linearFromRoll = new Vector3();
@@ -31,36 +33,49 @@ export class MovementSystem {
     radialUp.copy(this.playerBody.position).normalize();
     downWorld.copy(radialUp).multiplyScalar(-1);
 
-    this.camera.getWorldDirection(cameraForward);
-    moveForward.copy(cameraForward).multiplyScalar(-1).projectOnPlane(radialUp);
-    if (moveForward.lengthSq() < 1e-6) {
-      moveForward.copy(worldUp).projectOnPlane(radialUp);
-      if (moveForward.lengthSq() < 1e-6) {
-        moveForward.set(0, 0, 1).projectOnPlane(radialUp);
+    headingForward.copy(world.player.heading).projectOnPlane(radialUp);
+    if (headingForward.lengthSq() < 1e-6) {
+      this.camera.getWorldDirection(headingForward);
+      headingForward.multiplyScalar(-1).projectOnPlane(radialUp);
+      if (headingForward.lengthSq() < 1e-6) {
+        headingForward.copy(worldUp).projectOnPlane(radialUp);
+      }
+      if (headingForward.lengthSq() < 1e-6) {
+        headingForward.set(0, 0, 1).projectOnPlane(radialUp);
       }
     }
-    moveForward.normalize();
-    moveRight.copy(radialUp).cross(moveForward).normalize();
+    headingForward.normalize();
+    headingRight.copy(radialUp).cross(headingForward).normalize();
 
-    desiredDir
-      .copy(moveRight)
-      .multiplyScalar(world.input.moveX)
-      .addScaledVector(moveForward, world.input.moveY);
+    const leftY = world.input.leftStickY;
+    const rightY = world.input.rightStickY;
+    const leftX = world.input.leftStickX;
+    const rightX = world.input.rightStickX;
 
-    let inputMagnitude = desiredDir.length();
-    if (inputMagnitude > 1) {
-      desiredDir.normalize();
-      inputMagnitude = 1;
-    } else if (inputMagnitude > 1e-5) {
-      desiredDir.normalize();
+    const forwardCommand = Math.max(-1, Math.min(1, (leftY + rightY) * 0.5));
+    const lateralCommand = Math.max(-1, Math.min(1, (leftX + rightX) * 0.5));
+    const driveTurn = Math.max(-1, Math.min(1, (rightY - leftY) * 0.5));
+    const sweepTurn = Math.max(-1, Math.min(1, (rightX - leftX) * 0.5));
+    const turnCommand = Math.max(-1, Math.min(1, driveTurn + (sweepTurn * 0.75)));
+
+    forwardDir.copy(headingForward).multiplyScalar(forwardCommand);
+    lateralDir.copy(headingRight).multiplyScalar(lateralCommand * 0.55);
+    desiredRollDir.copy(forwardDir).add(lateralDir);
+
+    let rollMagnitude = desiredRollDir.length();
+    if (rollMagnitude > 1e-5) {
+      desiredRollDir.normalize();
+      rollMagnitude = Math.min(1, rollMagnitude);
     }
 
     const speedMultiplier = world.input.boost ? world.config.boostMultiplier : 1;
-    const torqueState = torqueInputFromDirection(desiredDir, inputMagnitude, 1);
+    const torqueState = torqueInputFromDirection(desiredRollDir, rollMagnitude, 1);
 
     torqueWorld
       .copy(torqueState.desiredTangentDir)
       .multiplyScalar(world.config.movementTuning.torqueStrength * torqueState.magnitude * speedMultiplier);
+    spinTorque.copy(radialUp).multiplyScalar(-turnCommand * world.config.movementTuning.torqueStrength * 0.66 * speedMultiplier);
+    torqueWorld.add(spinTorque);
 
     angularDelta.copy(
       approximateAngularAcceleration(
@@ -72,7 +87,7 @@ export class MovementSystem {
 
     world.player.angularVelocity.addScaledVector(angularDelta, dt);
 
-    if (torqueState.magnitude < 0.08) {
+    if (torqueState.magnitude < 0.08 && Math.abs(turnCommand) < 0.08) {
       const lowDir = lowestSupportDirectionWorld(world.player.composite, world.player.orientation, downWorld);
       settleTorque.copy(lowDir).cross(downWorld).multiplyScalar(world.config.movementTuning.settleTorque);
       world.player.angularVelocity.addScaledVector(settleTorque, dt);
@@ -100,6 +115,15 @@ export class MovementSystem {
     world.player.rollingContact = rollingContact;
 
     linearFromRoll.copy(world.player.angularVelocity).cross(radialUp).multiplyScalar(rollingContact.effectiveRadius);
+
+    if (Math.abs(turnCommand) > 0.001) {
+      const headingTurnRate = 2.1 + Math.abs(forwardCommand) * 0.6;
+      headingForward.applyAxisAngle(radialUp, -turnCommand * headingTurnRate * dt).normalize();
+    }
+    if (rollMagnitude > 0.12) {
+      headingForward.lerp(desiredRollDir, Math.min(1, dt * 4.2)).normalize();
+    }
+    world.player.heading.copy(headingForward);
 
     projectedVelocity.copy(world.player.velocity).projectOnPlane(radialUp);
     const blend = Math.min(1, dt * (8 + sampleCurve(world.config.movementTuning.accelCurveByRadius, world.player.radius) * 0.25));

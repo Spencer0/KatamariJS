@@ -284,6 +284,7 @@ export class Game {
     this.world.playerPosition.copy(next);
     this.world.player.orientation.identity();
     this.playerBody.quaternion.identity();
+    this.world.player.heading.set(0, 0, 1).projectOnPlane(next.clone().normalize()).normalize();
 
     recomputeCompositeBody(this.world.player.composite, this.world.config.baseMass);
     this.world.player.rollingContact = estimateRollingContact(

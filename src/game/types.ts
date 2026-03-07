@@ -85,6 +85,10 @@ export interface InputState {
   moveY: number;
   cameraX: number;
   cameraY: number;
+  leftStickX: number;
+  leftStickY: number;
+  rightStickX: number;
+  rightStickY: number;
   boost: boolean;
 }
 
@@ -143,6 +147,7 @@ export interface PlayerBallState {
   mass: number;
   velocity: Vector3;
   angularVelocity: Vector3;
+  heading: Vector3;
   orientation: Quaternion;
   comLocal: Vector3;
   inertiaLocal: Matrix3;

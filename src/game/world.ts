@@ -9,6 +9,10 @@ export const emptyInputState: InputState = {
   moveY: 0,
   cameraX: 0,
   cameraY: 0,
+  leftStickX: 0,
+  leftStickY: 0,
+  rightStickX: 0,
+  rightStickY: 0,
   boost: false,
 };
 
@@ -27,6 +31,7 @@ export function createInitialWorld(): WorldState {
       mass: defaultConfig.baseMass,
       velocity: new Vector3(),
       angularVelocity: new Vector3(),
+      heading: new Vector3(0, 0, 1),
       orientation: new Quaternion(),
       comLocal: new Vector3(),
       inertiaLocal: new Matrix3().identity(),

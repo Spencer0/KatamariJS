@@ -23,8 +23,8 @@ export function normalizeVector(input: Vec2): Vec2 {
 
 export class InputSystem {
   private keys = new Set<string>();
-  private touchMove: Vec2 = { x: 0, y: 0 };
-  private touchCamera: Vec2 = { x: 0, y: 0 };
+  private touchLeft: Vec2 = { x: 0, y: 0 };
+  private touchRight: Vec2 = { x: 0, y: 0 };
   private leftTouchId: number | null = null;
   private rightTouchId: number | null = null;
 
@@ -47,22 +47,34 @@ export class InputSystem {
   }
 
   update(input: InputState): void {
-    const keyboard = {
-      x: this.axis(['KeyD', 'ArrowRight']) - this.axis(['KeyA', 'ArrowLeft']),
-      y: this.axis(['KeyW', 'ArrowUp']) - this.axis(['KeyS', 'ArrowDown']),
-    };
+    const keyboardLeft = normalizeVector({
+      x: this.axis(['KeyD']) - this.axis(['KeyA']),
+      y: this.axis(['KeyW']) - this.axis(['KeyS']),
+    });
+    const keyboardRight = normalizeVector({
+      x: this.axis(['ArrowRight']) - this.axis(['ArrowLeft']),
+      y: this.axis(['ArrowUp']) - this.axis(['ArrowDown']),
+    });
 
-    const stick = this.gamepadStick();
-    const moveRaw = {
-      x: keyboard.x + this.touchMove.x + stick.x,
-      y: keyboard.y + this.touchMove.y + stick.y,
-    };
-    const move = normalizeVector({ x: clampUnit(moveRaw.x), y: clampUnit(moveRaw.y) });
+    const pad = this.gamepadSticks();
 
-    input.moveX = move.x;
-    input.moveY = move.y;
-    input.cameraX = clampUnit(this.touchCamera.x);
-    input.cameraY = clampUnit(this.touchCamera.y);
+    const left = normalizeVector({
+      x: clampUnit(keyboardLeft.x + this.touchLeft.x + pad.left.x),
+      y: clampUnit(keyboardLeft.y + this.touchLeft.y + pad.left.y),
+    });
+    const right = normalizeVector({
+      x: clampUnit(keyboardRight.x + this.touchRight.x + pad.right.x),
+      y: clampUnit(keyboardRight.y + this.touchRight.y + pad.right.y),
+    });
+
+    input.leftStickX = left.x;
+    input.leftStickY = left.y;
+    input.rightStickX = right.x;
+    input.rightStickY = right.y;
+    input.moveX = clampUnit((left.x + right.x) * 0.5);
+    input.moveY = clampUnit((left.y + right.y) * 0.5);
+    input.cameraX = 0;
+    input.cameraY = 0;
     input.boost = this.keys.has('ShiftLeft') || this.keys.has('ShiftRight') || this.gamepadBoost();
   }
 
@@ -70,15 +82,24 @@ export class InputSystem {
     return codes.some((code) => this.keys.has(code)) ? 1 : 0;
   }
 
-  private gamepadStick(): Vec2 {
+  private gamepadSticks(): { left: Vec2; right: Vec2 } {
     const gamepad = navigator.getGamepads?.()[0];
     if (!gamepad) {
-      return { x: 0, y: 0 };
+      return {
+        left: { x: 0, y: 0 },
+        right: { x: 0, y: 0 },
+      };
     }
 
     return {
-      x: clampUnit(gamepad.axes[0] ?? 0),
-      y: clampUnit(-(gamepad.axes[1] ?? 0)),
+      left: {
+        x: clampUnit(gamepad.axes[0] ?? 0),
+        y: clampUnit(-(gamepad.axes[1] ?? 0)),
+      },
+      right: {
+        x: clampUnit(gamepad.axes[2] ?? 0),
+        y: clampUnit(-(gamepad.axes[3] ?? 0)),
+      },
     };
   }
 
@@ -112,16 +133,16 @@ export class InputSystem {
       if (touch.identifier === this.leftTouchId) {
         const x = (touch.clientX / (window.innerWidth * 0.5)) * 2 - 1;
         const y = (touch.clientY / window.innerHeight) * 2 - 1;
-        this.touchMove = normalizeVector({ x: clampUnit(x), y: clampUnit(-y) });
+        this.touchLeft = normalizeVector({ x: clampUnit(x), y: clampUnit(-y) });
       }
 
       if (touch.identifier === this.rightTouchId) {
         const x = (touch.clientX - window.innerWidth * 0.5) / (window.innerWidth * 0.5);
         const y = touch.clientY / window.innerHeight;
-        this.touchCamera = {
+        this.touchRight = normalizeVector({
           x: clampUnit(x),
           y: clampUnit(-((y * 2) - 1)),
-        };
+        });
       }
     }
   };
@@ -131,12 +152,12 @@ export class InputSystem {
     for (const touch of Array.from(event.changedTouches)) {
       if (touch.identifier === this.leftTouchId) {
         this.leftTouchId = null;
-        this.touchMove = { x: 0, y: 0 };
+        this.touchLeft = { x: 0, y: 0 };
       }
 
       if (touch.identifier === this.rightTouchId) {
         this.rightTouchId = null;
-        this.touchCamera = { x: 0, y: 0 };
+        this.touchRight = { x: 0, y: 0 };
       }
     }
   };
