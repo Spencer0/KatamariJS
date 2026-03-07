@@ -32,7 +32,7 @@ export class MovementSystem {
     downWorld.copy(radialUp).multiplyScalar(-1);
 
     this.camera.getWorldDirection(cameraForward);
-    moveForward.copy(cameraForward).projectOnPlane(radialUp);
+    moveForward.copy(cameraForward).multiplyScalar(-1).projectOnPlane(radialUp);
     if (moveForward.lengthSq() < 1e-6) {
       moveForward.copy(worldUp).projectOnPlane(radialUp);
       if (moveForward.lengthSq() < 1e-6) {
@@ -40,7 +40,7 @@ export class MovementSystem {
       }
     }
     moveForward.normalize();
-    moveRight.copy(moveForward).cross(radialUp).normalize();
+    moveRight.copy(radialUp).cross(moveForward).normalize();
 
     desiredDir
       .copy(moveRight)

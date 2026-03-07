@@ -311,6 +311,11 @@ export class Game {
       this.debugOverlay.toggle();
       return;
     }
+
+    if (event.code === 'Digit9') {
+      this.debugOverlay.togglePickupBounds();
+      return;
+    }
   };
 
   private tryStartAudio = async (): Promise<void> => {

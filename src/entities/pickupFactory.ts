@@ -60,12 +60,26 @@ function calibrateVisualRadius(mesh: Mesh, fallback: number): number {
   return Math.max(fallback * 0.65, tempSphere.radius);
 }
 
+function normalizeMeshToRadius(mesh: Mesh, targetRadius: number): void {
+  tempBox.setFromObject(mesh);
+  if (tempBox.isEmpty()) {
+    return;
+  }
+  tempBox.getBoundingSphere(tempSphere);
+  if (tempSphere.radius <= 0.0001) {
+    return;
+  }
+
+  const scaleFactor = targetRadius / tempSphere.radius;
+  mesh.scale.multiplyScalar(scaleFactor);
+}
+
 async function loadVisual(entry: AssetManifestEntry, biome: BiomeType): Promise<Mesh> {
   try {
     const glbPath = entry.glbPath.startsWith('/') ? entry.glbPath.slice(1) : entry.glbPath;
     const glbUrl = new URL(glbPath, window.location.origin + import.meta.env.BASE_URL).toString();
     const gltf = await loader.loadAsync(glbUrl);
-    gltf.scene.scale.setScalar(entry.scale * (entry.visualScaleFix ?? 1));
+    gltf.scene.scale.setScalar(entry.scale);
     const mesh = firstMesh(gltf.scene);
     if (!mesh) {
       return fallbackMesh(entry, biome);
@@ -86,14 +100,17 @@ export async function createPickupEntity(
   position: Vector3,
 ): Promise<PickupEntity> {
   const mesh = await loadVisual(entry, biome);
+  const collisionRadius = entry.physicsRadius ?? entry.pickupRadius;
+  const desiredVisualRadius = collisionRadius * (entry.visualScaleFix ?? 1);
+  normalizeMeshToRadius(mesh, desiredVisualRadius);
   mesh.position.copy(position);
 
-  const visualRadius = entry.physicsRadius ?? calibrateVisualRadius(mesh, entry.pickupRadius);
+  const visualRadius = calibrateVisualRadius(mesh, desiredVisualRadius);
 
   return {
     id: `pickup-${index}`,
     assetId: entry.id,
-    radius: entry.pickupRadius,
+    radius: collisionRadius,
     visualRadius,
     mass: entry.mass,
     valueTier: entry.valueTier,

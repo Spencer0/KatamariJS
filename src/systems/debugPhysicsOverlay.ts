@@ -10,6 +10,8 @@ const contactDir = new Vector3();
 
 export class DebugPhysicsOverlay {
   private group = new Group();
+  private pickupGroup = new Group();
+  private pickupBoundsVisible = false;
   private comMarker = new Mesh(new SphereGeometry(0.08, 10, 10), new MeshBasicMaterial({ color: '#f03e3e' }));
   private axisXArrow = new ArrowHelper(axisX, new Vector3(), 0.8, new Color('#339af0').getHex());
   private axisYArrow = new ArrowHelper(axisY, new Vector3(), 0.8, new Color('#40c057').getHex());
@@ -19,7 +21,8 @@ export class DebugPhysicsOverlay {
   constructor(scene: Scene) {
     this.group.visible = false;
     this.group.add(this.comMarker, this.axisXArrow, this.axisYArrow, this.axisZArrow, this.contactArrow);
-    scene.add(this.group);
+    this.pickupGroup.visible = false;
+    scene.add(this.group, this.pickupGroup);
   }
 
   setVisible(visible: boolean): void {
@@ -29,6 +32,12 @@ export class DebugPhysicsOverlay {
   toggle(): boolean {
     this.group.visible = !this.group.visible;
     return this.group.visible;
+  }
+
+  togglePickupBounds(): boolean {
+    this.pickupBoundsVisible = !this.pickupBoundsVisible;
+    this.pickupGroup.visible = this.pickupBoundsVisible;
+    return this.pickupBoundsVisible;
   }
 
   update(world: WorldState): void {
@@ -51,5 +60,27 @@ export class DebugPhysicsOverlay {
     contactDir.copy(world.player.rollingContact.contactPoint).sub(world.playerPosition).normalize();
     this.contactArrow.setDirection(contactDir);
     this.contactArrow.setLength(Math.max(0.5, world.player.rollingContact.effectiveRadius));
+
+    if (this.pickupBoundsVisible) {
+      while (this.pickupGroup.children.length < Math.min(40, world.pickups.length)) {
+        const marker = new Mesh(
+          new SphereGeometry(1, 8, 8),
+          new MeshBasicMaterial({ color: '#00d8ff', wireframe: true }),
+        );
+        this.pickupGroup.add(marker);
+      }
+
+      for (let i = 0; i < this.pickupGroup.children.length; i += 1) {
+        const marker = this.pickupGroup.children[i] as Mesh;
+        const pickup = world.pickups[i];
+        if (!pickup || pickup.attached) {
+          marker.visible = false;
+          continue;
+        }
+        marker.visible = true;
+        marker.position.copy(pickup.mesh.position);
+        marker.scale.setScalar(pickup.radius);
+      }
+    }
   }
 }

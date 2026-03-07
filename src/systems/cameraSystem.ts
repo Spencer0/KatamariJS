@@ -7,6 +7,7 @@ const side = new Vector3();
 const desiredPosition = new Vector3();
 const lookTarget = new Vector3();
 const fallback = new Vector3(0, 0, 1);
+const velocityForward = new Vector3();
 
 export class CameraSystem {
   private orbitForward = new Vector3(0, 0, 1);
@@ -25,6 +26,13 @@ export class CameraSystem {
       }
     }
     this.orbitForward.normalize();
+
+    velocityForward.copy(world.player.velocity).projectOnPlane(radialUp);
+    if (velocityForward.lengthSq() > 0.0004) {
+      velocityForward.normalize();
+      const autoFollow = Math.min(0.09, dt * 1.2);
+      this.orbitForward.lerp(velocityForward, autoFollow).normalize();
+    }
 
     this.yawVelocity = this.yawVelocity * 0.82 + world.input.cameraX * 2.2;
     if (Math.abs(this.yawVelocity) > 1e-4) {
