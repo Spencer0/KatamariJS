@@ -15,6 +15,11 @@ const manifestEntrySchema = z.object({
   biome: z.enum(['forest', 'city', 'suburb']).optional(),
   styleTags: z.array(z.string()).optional(),
   qualityScore: z.number().min(0).max(100).optional(),
+  physicsRadius: z.number().positive().optional(),
+  massDistributionClass: z.enum(['balanced', 'topheavy', 'elongated']).optional(),
+  attachDepth: z.number().min(0).max(2).optional(),
+  inertiaBias: z.number().min(0.2).max(3).optional(),
+  visualScaleFix: z.number().positive().optional(),
 });
 
 const audioTrackSchema = z.object({

@@ -1,4 +1,4 @@
-import type { Mesh, Vector3 } from 'three';
+import type { Matrix3, Mesh, Quaternion, Vector3 } from 'three';
 
 export type AssetCategory = 'pickup' | 'prop' | 'environment';
 export type AssetStatus = 'active' | 'deprecated';
@@ -18,6 +18,11 @@ export interface AssetManifestEntry {
   biome?: BiomeType;
   styleTags?: string[];
   qualityScore?: number;
+  physicsRadius?: number;
+  massDistributionClass?: 'balanced' | 'topheavy' | 'elongated';
+  attachDepth?: number;
+  inertiaBias?: number;
+  visualScaleFix?: number;
 }
 
 export interface AudioTrackManifestEntry {
@@ -43,6 +48,11 @@ export interface MovementTuning {
   accelCurveByRadius: CurvePoint[];
   dragCurveByRadius: CurvePoint[];
   maxSpeedCurveByRadius: CurvePoint[];
+  settleTorque: number;
+  contactDamping: number;
+  maxAngularSpeed: number;
+  supportSampleCount: number;
+  torqueStrength: number;
 }
 
 export interface HazardZone {
@@ -78,10 +88,43 @@ export interface InputState {
   boost: boolean;
 }
 
+export interface ProtrusionState {
+  id: string;
+  localOffset: Vector3;
+  radius: number;
+  mass: number;
+  shapeClass: 'round' | 'boxy' | 'elongated';
+  inertiaBias: number;
+}
+
+export interface RollingContactState {
+  contactPoint: Vector3;
+  contactNormal: Vector3;
+  effectiveRadius: number;
+  isStable: boolean;
+}
+
+export interface TorqueInputState {
+  desiredTangentDir: Vector3;
+  magnitude: number;
+  assistFactor: number;
+}
+
+export interface CompositeBodyState {
+  coreRadius: number;
+  com: Vector3;
+  inertiaTensorLocal: Matrix3;
+  principalAxes: Quaternion;
+  supportSamples: Vector3[];
+  protrusions: ProtrusionState[];
+  effectiveRollingRadiusByDir: (dir: Vector3, orientation: Quaternion) => number;
+}
+
 export interface PickupEntity {
   id: string;
   assetId: string;
   radius: number;
+  visualRadius: number;
   mass: number;
   valueTier: number;
   biome: BiomeType;
@@ -89,14 +132,24 @@ export interface PickupEntity {
   attachOffset: Vector3;
   attached: boolean;
   mesh: Mesh;
+  attachDepth: number;
+  inertiaBias: number;
+  massDistributionClass: 'balanced' | 'topheavy' | 'elongated';
+  visualScaleFix: number;
 }
 
 export interface PlayerBallState {
   radius: number;
   mass: number;
   velocity: Vector3;
+  angularVelocity: Vector3;
+  orientation: Quaternion;
+  comLocal: Vector3;
+  inertiaLocal: Matrix3;
   score: number;
   attachedPickups: PickupEntity[];
+  composite: CompositeBodyState;
+  rollingContact: RollingContactState;
   respawnCount: number;
 }
 

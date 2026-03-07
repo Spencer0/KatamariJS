@@ -1,4 +1,11 @@
+import { Matrix3 } from 'three';
 import type { GameConfig } from './types';
+
+const identityInertia = new Matrix3().set(
+  1, 0, 0,
+  0, 1, 0,
+  0, 0, 1,
+);
 
 export const defaultConfig: GameConfig = {
   targetWinRadius: 4.8,
@@ -35,6 +42,11 @@ export const defaultConfig: GameConfig = {
       { radius: 2.8, value: 13 },
       { radius: 4.8, value: 15 },
     ],
+    settleTorque: 8.2,
+    contactDamping: 2.2,
+    maxAngularSpeed: 12,
+    supportSampleCount: 64,
+    torqueStrength: 14,
   },
   hazardZone: {
     type: 'water',
@@ -47,3 +59,5 @@ export const defaultConfig: GameConfig = {
     safeSpawnResolver: 'nearest-biome-safe-point',
   },
 };
+
+export const baseInertiaTensor = identityInertia;

@@ -1,5 +1,5 @@
 import { Vector3 } from 'three';
-import type { Camera, Mesh } from 'three';
+import type { Camera, Object3D } from 'three';
 import type { WorldState } from '../game/types';
 
 const radialUp = new Vector3();
@@ -12,10 +12,10 @@ export class CameraSystem {
   private orbitForward = new Vector3(0, 0, 1);
   private yawVelocity = 0;
 
-  constructor(private readonly camera: Camera, private readonly playerMesh: Mesh) {}
+  constructor(private readonly camera: Camera, private readonly playerBody: Object3D) {}
 
   update(dt: number, world: WorldState): void {
-    radialUp.copy(this.playerMesh.position).normalize();
+    radialUp.copy(this.playerBody.position).normalize();
 
     this.orbitForward.projectOnPlane(radialUp);
     if (this.orbitForward.lengthSq() < 1e-6) {
@@ -38,12 +38,12 @@ export class CameraSystem {
     const height = 3.3 + world.player.radius * 0.22;
 
     desiredPosition
-      .copy(this.playerMesh.position)
+      .copy(this.playerBody.position)
       .addScaledVector(this.orbitForward, -followDistance)
       .addScaledVector(radialUp, height)
       .addScaledVector(side, world.input.cameraY * 1.25);
 
-    lookTarget.copy(this.playerMesh.position).addScaledVector(radialUp, world.player.radius * 0.65);
+    lookTarget.copy(this.playerBody.position).addScaledVector(radialUp, world.player.radius * 0.65);
 
     this.camera.position.lerp(desiredPosition, 0.12);
     this.camera.up.copy(radialUp);

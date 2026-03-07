@@ -22,10 +22,16 @@ describe('manifest schema', () => {
         biome: 'forest',
         styleTags: ['anime'],
         qualityScore: 80,
+        physicsRadius: 0.45,
+        massDistributionClass: 'balanced',
+        attachDepth: 0.04,
+        inertiaBias: 1.2,
+        visualScaleFix: 1.1,
       },
     ]);
     expect(parsed[0].biome).toBe('forest');
     expect(parsed[0].styleTags).toContain('anime');
+    expect(parsed[0].physicsRadius).toBeCloseTo(0.45);
   });
 
   it('filters active pickups', () => {

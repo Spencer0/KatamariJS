@@ -2,6 +2,7 @@ import {
   AmbientLight,
   Color,
   DirectionalLight,
+  Group,
   Mesh,
   MeshStandardMaterial,
   PerspectiveCamera,
@@ -11,7 +12,8 @@ import {
   WebGLRenderer,
 } from 'three';
 import { createPickupEntity } from '../entities/pickupFactory';
-import { isWaterPosition, safeRespawnPosition } from './logic';
+import { estimateRollingContact, recomputeCompositeBody } from './compositePhysics';
+import { calculateRadius, isWaterPosition, safeRespawnPosition } from './logic';
 import { getActivePickups, loadAssetManifest, loadAudioManifest, pickEntriesForBiome } from './manifest';
 import { createInitialWorld } from './world';
 import { CameraSystem } from '../systems/cameraSystem';
@@ -21,6 +23,7 @@ import { MovementSystem } from '../systems/movementSystem';
 import { PickupSystem } from '../systems/pickupSystem';
 import { createHud, UISystem } from '../systems/uiSystem';
 import { AudioSystem } from '../systems/audioSystem';
+import { DebugPhysicsOverlay } from '../systems/debugPhysicsOverlay';
 import type { AssetManifestEntry, BiomeType } from './types';
 
 const planetCenter = new Vector3(0, 0, 0);
@@ -58,8 +61,10 @@ export class Game {
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 600);
   private readonly world = createInitialWorld();
-  private readonly playerMesh: Mesh;
+  private readonly playerBody = new Group();
+  private readonly playerCoreMesh: Mesh;
   private readonly audioSystem = new AudioSystem();
+  private readonly debugOverlay: DebugPhysicsOverlay;
 
   private lastFrameTime = 0;
   private isAudioStarted = false;
@@ -79,14 +84,17 @@ export class Game {
     this.renderer.shadowMap.enabled = true;
     this.root.append(this.renderer.domElement);
 
-    this.playerMesh = new Mesh(
+    this.playerCoreMesh = new Mesh(
       new SphereGeometry(this.world.config.baseRadius, 24, 24),
       new MeshStandardMaterial({ color: '#ffd43b', roughness: 0.45, metalness: 0.2 }),
     );
-    this.playerMesh.castShadow = true;
-    this.playerMesh.receiveShadow = true;
-    this.playerMesh.position.copy(this.world.playerPosition);
-    this.scene.add(this.playerMesh);
+    this.playerCoreMesh.castShadow = true;
+    this.playerCoreMesh.receiveShadow = true;
+
+    this.playerBody.add(this.playerCoreMesh);
+    this.playerBody.position.copy(this.world.playerPosition);
+    this.playerBody.quaternion.copy(this.world.player.orientation);
+    this.scene.add(this.playerBody);
 
     this.addPlanetVisuals();
 
@@ -97,13 +105,15 @@ export class Game {
     directional.castShadow = true;
     this.scene.add(directional);
 
+    this.debugOverlay = new DebugPhysicsOverlay(this.scene);
+
     this.camera.position.set(0, 60, 80);
 
     this.inputSystem = new InputSystem(this.renderer.domElement);
-    this.movementSystem = new MovementSystem(this.playerMesh, this.camera);
-    this.pickupSystem = new PickupSystem(this.playerMesh);
-    this.growthSystem = new GrowthSystem(this.playerMesh);
-    this.cameraSystem = new CameraSystem(this.camera, this.playerMesh);
+    this.movementSystem = new MovementSystem(this.playerBody, this.camera);
+    this.pickupSystem = new PickupSystem(this.playerBody);
+    this.growthSystem = new GrowthSystem(this.playerCoreMesh);
+    this.cameraSystem = new CameraSystem(this.camera, this.playerBody);
     this.uiSystem = new UISystem(
       createHud(this.root, {
         onReset: this.reset,
@@ -195,7 +205,7 @@ export class Game {
     if (activePickups.length === 0) {
       return;
     }
-    const targetCount = Math.min(72, Math.max(36, activePickups.length * 3));
+    const targetCount = Math.min(120, Math.max(48, activePickups.length * 4));
     this.world.loading.total += targetCount;
 
     for (let i = 0; i < targetCount; i += 1) {
@@ -228,7 +238,7 @@ export class Game {
 
     if (this.world.phase === 'playing') {
       this.movementSystem.update(dt, this.world);
-      this.world.playerPosition.copy(this.playerMesh.position);
+      this.world.playerPosition.copy(this.playerBody.position);
       this.pickupSystem.update(this.world);
       this.growthSystem.update(this.world);
       this.handleHazards();
@@ -236,6 +246,7 @@ export class Game {
 
     if (this.world.phase === 'respawning') {
       this.world.player.velocity.multiplyScalar(0.5);
+      this.world.player.angularVelocity.multiplyScalar(0.3);
       this.world.phase = 'playing';
     }
 
@@ -243,13 +254,14 @@ export class Game {
       this.cameraSystem.update(dt, this.world);
     }
 
+    this.debugOverlay.update(this.world);
     this.uiSystem.update(this.world);
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.loop);
   };
 
   private handleHazards(): void {
-    if (!isWaterPosition(this.playerMesh.position)) {
+    if (!isWaterPosition(this.playerBody.position)) {
       return;
     }
 
@@ -258,17 +270,28 @@ export class Game {
     this.world.player.mass *= 1 - this.world.config.respawnPolicy.sizePenaltyPct;
     this.world.player.radius = Math.max(
       this.world.config.baseRadius,
-      this.world.config.baseRadius + Math.sqrt(this.world.player.mass) * this.world.config.growthFactor,
+      calculateRadius(this.world.config.baseRadius, this.world.player.mass, this.world.config.growthFactor),
     );
 
     const next = safeRespawnPosition(
-      this.playerMesh.position,
+      this.playerBody.position,
       this.world.config.worldGeometry.planetRadius,
       this.world.player.radius,
     );
-    this.playerMesh.position.copy(next);
+    this.playerBody.position.copy(next);
     this.world.player.velocity.set(0, 0, 0);
+    this.world.player.angularVelocity.set(0, 0, 0);
     this.world.playerPosition.copy(next);
+    this.world.player.orientation.identity();
+    this.playerBody.quaternion.identity();
+
+    recomputeCompositeBody(this.world.player.composite, this.world.config.baseMass);
+    this.world.player.rollingContact = estimateRollingContact(
+      this.world.player.composite,
+      this.world.player.orientation,
+      this.playerBody.position,
+      this.playerBody.position.clone().normalize(),
+    );
   }
 
   private onResize = (): void => {
@@ -281,6 +304,12 @@ export class Game {
     if (event.code === 'Escape') {
       this.world.phase = this.world.phase === 'paused' ? 'playing' : 'paused';
       event.preventDefault();
+      return;
+    }
+
+    if (event.code === 'Backquote') {
+      this.debugOverlay.toggle();
+      return;
     }
   };
 
@@ -312,8 +341,8 @@ export class Game {
   };
 
   debugForceWaterFall(): void {
-    this.playerMesh.position.set(this.world.config.worldGeometry.planetRadius + this.world.player.radius, 0, 0);
-    this.world.playerPosition.copy(this.playerMesh.position);
+    this.playerBody.position.set(this.world.config.worldGeometry.planetRadius + this.world.player.radius, 0, 0);
+    this.world.playerPosition.copy(this.playerBody.position);
     this.handleHazards();
   }
 

@@ -1,9 +1,11 @@
 import {
+  Box3,
   BoxGeometry,
   Color,
   Mesh,
   MeshStandardMaterial,
   Object3D,
+  Sphere,
   SphereGeometry,
   Vector3,
 } from 'three';
@@ -11,6 +13,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { AssetManifestEntry, BiomeType, PickupEntity } from '../game/types';
 
 const loader = new GLTFLoader();
+const tempBox = new Box3();
+const tempSphere = new Sphere();
 
 function biomeHue(biome: BiomeType): number {
   if (biome === 'forest') {
@@ -47,12 +51,21 @@ function firstMesh(root: Object3D): Mesh | null {
   return candidate;
 }
 
+function calibrateVisualRadius(mesh: Mesh, fallback: number): number {
+  tempBox.setFromObject(mesh);
+  if (tempBox.isEmpty()) {
+    return fallback;
+  }
+  tempBox.getBoundingSphere(tempSphere);
+  return Math.max(fallback * 0.65, tempSphere.radius);
+}
+
 async function loadVisual(entry: AssetManifestEntry, biome: BiomeType): Promise<Mesh> {
   try {
     const glbPath = entry.glbPath.startsWith('/') ? entry.glbPath.slice(1) : entry.glbPath;
     const glbUrl = new URL(glbPath, window.location.origin + import.meta.env.BASE_URL).toString();
     const gltf = await loader.loadAsync(glbUrl);
-    gltf.scene.scale.setScalar(entry.scale);
+    gltf.scene.scale.setScalar(entry.scale * (entry.visualScaleFix ?? 1));
     const mesh = firstMesh(gltf.scene);
     if (!mesh) {
       return fallbackMesh(entry, biome);
@@ -75,10 +88,13 @@ export async function createPickupEntity(
   const mesh = await loadVisual(entry, biome);
   mesh.position.copy(position);
 
+  const visualRadius = entry.physicsRadius ?? calibrateVisualRadius(mesh, entry.pickupRadius);
+
   return {
     id: `pickup-${index}`,
     assetId: entry.id,
     radius: entry.pickupRadius,
+    visualRadius,
     mass: entry.mass,
     valueTier: entry.valueTier,
     biome,
@@ -86,5 +102,9 @@ export async function createPickupEntity(
     attachOffset: new Vector3(),
     attached: false,
     mesh,
+    attachDepth: entry.attachDepth ?? 0.03,
+    inertiaBias: entry.inertiaBias ?? 1,
+    massDistributionClass: entry.massDistributionClass ?? 'balanced',
+    visualScaleFix: entry.visualScaleFix ?? 1,
   };
 }
