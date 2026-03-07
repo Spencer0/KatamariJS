@@ -24,10 +24,14 @@ Use this base prompt for asset generation agents:
 ## Validation Flow
 1. Generate candidate asset in DCC/AI tool.
 2. Export `.glb` and register manifest metadata.
-3. Run schema validation and `validateAssetEntries` report.
+3. Run `npm run assets:validate` and inspect `reports/asset-validation-report.json`.
 4. Launch smoke run and confirm fallback behavior if file missing.
 5. Promote to `active` and record review notes.
 
 ## Batch Plan
 - Batch A (20 hero assets): balanced 7 forest, 7 city, 6 suburb.
 - Batch B-C (next 80): generated in smaller waves with same gates.
+
+## Prompt Generation
+- Run `npm run assets:prompts` to generate agent-ready prompts from the current manifest.
+- Output file: `docs/asset-prompts.generated.md`.
