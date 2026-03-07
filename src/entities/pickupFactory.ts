@@ -35,7 +35,9 @@ function firstMesh(root: Object3D): Mesh | null {
 
 async function loadVisual(entry: AssetManifestEntry): Promise<Mesh> {
   try {
-    const gltf = await loader.loadAsync(entry.glbPath);
+    const glbPath = entry.glbPath.startsWith('/') ? entry.glbPath.slice(1) : entry.glbPath;
+    const glbUrl = new URL(glbPath, window.location.origin + import.meta.env.BASE_URL).toString();
+    const gltf = await loader.loadAsync(glbUrl);
     gltf.scene.scale.setScalar(entry.scale);
     const mesh = firstMesh(gltf.scene);
     if (!mesh) {

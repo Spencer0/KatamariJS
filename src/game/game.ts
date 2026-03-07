@@ -1,6 +1,5 @@
 import {
   AmbientLight,
-  Clock,
   Color,
   DirectionalLight,
   Mesh,
@@ -25,9 +24,9 @@ export class Game {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 400);
-  private readonly clock = new Clock();
   private readonly world = createInitialWorld();
   private readonly playerMesh: Mesh;
+  private lastFrameTime = 0;
 
   private readonly inputSystem: InputSystem;
   private readonly movementSystem: MovementSystem;
@@ -81,9 +80,14 @@ export class Game {
   }
 
   async start(): Promise<void> {
-    await this.spawnPickups();
+    try {
+      await this.spawnPickups();
+    } catch (error) {
+      console.error('Spawn failed, continuing with empty world.', error);
+    }
     this.world.phase = 'playing';
-    this.loop();
+    this.lastFrameTime = performance.now();
+    this.loop(this.lastFrameTime);
   }
 
   dispose(): void {
@@ -93,7 +97,8 @@ export class Game {
   }
 
   private async spawnPickups(): Promise<void> {
-    const entries = await loadAssetManifest('/assets/assets.manifest.json');
+    const manifestUrl = new URL('assets/assets.manifest.json', window.location.origin + import.meta.env.BASE_URL).toString();
+    const entries = await loadAssetManifest(manifestUrl);
     const pickups = getActivePickups(entries);
     let index = 0;
 
@@ -110,8 +115,9 @@ export class Game {
     }
   }
 
-  private loop = (): void => {
-    const dt = Math.min(0.033, this.clock.getDelta());
+  private loop = (time: number): void => {
+    const dt = Math.min(0.033, (time - this.lastFrameTime) / 1000);
+    this.lastFrameTime = time;
     this.world.elapsed += dt;
 
     if (this.world.phase !== 'loading') {
