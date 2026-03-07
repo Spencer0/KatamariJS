@@ -35,8 +35,12 @@ export class CameraSystem {
       this.orbitForward.lerp(targetForward, followLag).normalize();
     }
 
-    const followDistance = 8 + world.player.radius * 0.45;
-    const height = 3.3 + world.player.radius * 0.22;
+    const followDistance = world.config.movementTuning.baseFollowDistance
+      + world.config.movementTuning.distanceScale
+      * Math.pow(world.player.radius, world.config.movementTuning.cameraDistanceExponent);
+    const height = world.config.movementTuning.baseFollowHeight
+      + world.config.movementTuning.heightScale
+      * Math.pow(world.player.radius, world.config.movementTuning.cameraHeightExponent);
 
     desiredPosition
       .copy(this.playerBody.position)

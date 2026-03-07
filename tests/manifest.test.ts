@@ -27,11 +27,15 @@ describe('manifest schema', () => {
         attachDepth: 0.04,
         inertiaBias: 1.2,
         visualScaleFix: 1.1,
+        sizeTier: 'medium',
+        spawnWeight: 1.6,
+        groundingOffset: -0.03,
       },
     ]);
     expect(parsed[0].biome).toBe('forest');
     expect(parsed[0].styleTags).toContain('anime');
     expect(parsed[0].physicsRadius).toBeCloseTo(0.45);
+    expect(parsed[0].sizeTier).toBe('medium');
   });
 
   it('filters active pickups', () => {

@@ -20,6 +20,9 @@ const manifestEntrySchema = z.object({
   attachDepth: z.number().min(0).max(2).optional(),
   inertiaBias: z.number().min(0.2).max(3).optional(),
   visualScaleFix: z.number().positive().optional(),
+  sizeTier: z.enum(['small', 'medium', 'large', 'mega']).optional(),
+  spawnWeight: z.number().positive().optional(),
+  groundingOffset: z.number().min(-2).max(2).optional(),
 });
 
 const audioTrackSchema = z.object({

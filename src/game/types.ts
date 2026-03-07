@@ -23,6 +23,9 @@ export interface AssetManifestEntry {
   attachDepth?: number;
   inertiaBias?: number;
   visualScaleFix?: number;
+  sizeTier?: 'small' | 'medium' | 'large' | 'mega';
+  spawnWeight?: number;
+  groundingOffset?: number;
 }
 
 export interface AudioTrackManifestEntry {
@@ -42,6 +45,24 @@ export interface WorldGeometryConfig {
   planetRadius: number;
   gravityStrength: number;
   biomeBands: Record<BiomeType, [number, number]>;
+}
+
+export interface PickupDensityConfig {
+  activeCap: number;
+  minActive: number;
+  spawnBatchSize: number;
+  keepAliveAngleDeg: number;
+  spawnAngleDeg: number;
+  refillIntervalSec: number;
+  pickupDensityPerBiome: Record<BiomeType, number>;
+}
+
+export interface GrowthTier {
+  id: 'starter' | 'small' | 'medium' | 'large' | 'mega';
+  minPlayerRadius: number;
+  maxPickupRadius: number;
+  massGainMultiplier: number;
+  scoreMultiplier: number;
 }
 
 export interface MovementTuning {
@@ -66,18 +87,12 @@ export interface MovementTuning {
   driveDamping: number;
   coastDamping: number;
   maxSpeedHeadroomPct: number;
-}
-
-export interface HazardZone {
-  type: 'water';
-  surfaceMask: 'oceans-and-lakes';
-  penalty: number;
-}
-
-export interface RespawnPolicy {
-  mode: 'quick';
-  sizePenaltyPct: number;
-  safeSpawnResolver: 'nearest-biome-safe-point';
+  baseFollowDistance: number;
+  distanceScale: number;
+  cameraDistanceExponent: number;
+  baseFollowHeight: number;
+  heightScale: number;
+  cameraHeightExponent: number;
 }
 
 export interface GameConfig {
@@ -88,9 +103,9 @@ export interface GameConfig {
   boostMultiplier: number;
   growthFactor: number;
   worldGeometry: WorldGeometryConfig;
+  pickupDensity: PickupDensityConfig;
+  growthTiers: GrowthTier[];
   movementTuning: MovementTuning;
-  hazardZone: HazardZone;
-  respawnPolicy: RespawnPolicy;
 }
 
 export interface InputState {
@@ -162,6 +177,9 @@ export interface PickupEntity {
   inertiaBias: number;
   massDistributionClass: 'balanced' | 'topheavy' | 'elongated';
   visualScaleFix: number;
+  spawnSector: string;
+  groundOffset: number;
+  sizeTier: 'small' | 'medium' | 'large' | 'mega';
 }
 
 export interface PlayerBallState {
@@ -179,10 +197,9 @@ export interface PlayerBallState {
   attachedPickups: PickupEntity[];
   composite: CompositeBodyState;
   rollingContact: RollingContactState;
-  respawnCount: number;
 }
 
-export type GamePhase = 'loading' | 'playing' | 'paused' | 'respawning' | 'won';
+export type GamePhase = 'loading' | 'playing' | 'paused' | 'won';
 
 export interface LoadingProgress {
   total: number;

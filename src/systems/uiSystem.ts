@@ -104,12 +104,10 @@ export class UISystem {
       this.hud.phase.textContent = 'Loading...';
     } else if (world.phase === 'won') {
       this.hud.phase.textContent = 'You won. Press Esc for reset.';
-    } else if (world.phase === 'respawning') {
-      this.hud.phase.textContent = 'Respawning after water fall...';
     } else if (world.phase === 'paused') {
       this.hud.phase.textContent = 'Paused';
     } else {
-      this.hud.phase.textContent = 'Roll around the planet. Avoid water.';
+      this.hud.phase.textContent = 'Roll around the planet. Collect everything.';
     }
 
     const shouldShowLoader = world.phase === 'loading';

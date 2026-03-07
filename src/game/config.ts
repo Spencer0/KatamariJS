@@ -8,14 +8,14 @@ const identityInertia = new Matrix3().set(
 );
 
 export const defaultConfig: GameConfig = {
-  targetWinRadius: 4.8,
+  targetWinRadius: 12,
   pickupAttachFactor: 0.95,
   baseRadius: 0.6,
   baseMass: 8,
   boostMultiplier: 1.35,
   growthFactor: 0.095,
   worldGeometry: {
-    planetRadius: 46,
+    planetRadius: 460,
     gravityStrength: 28,
     biomeBands: {
       forest: [-Math.PI, -Math.PI / 3],
@@ -23,6 +23,26 @@ export const defaultConfig: GameConfig = {
       suburb: [Math.PI / 3, Math.PI],
     },
   },
+  pickupDensity: {
+    activeCap: 520,
+    minActive: 360,
+    spawnBatchSize: 28,
+    keepAliveAngleDeg: 55,
+    spawnAngleDeg: 38,
+    refillIntervalSec: 0.45,
+    pickupDensityPerBiome: {
+      forest: 0.35,
+      city: 0.34,
+      suburb: 0.31,
+    },
+  },
+  growthTiers: [
+    { id: 'starter', minPlayerRadius: 0.6, maxPickupRadius: 1.4, massGainMultiplier: 1.05, scoreMultiplier: 1 },
+    { id: 'small', minPlayerRadius: 1.8, maxPickupRadius: 2.8, massGainMultiplier: 0.96, scoreMultiplier: 1.25 },
+    { id: 'medium', minPlayerRadius: 3.2, maxPickupRadius: 4.8, massGainMultiplier: 0.9, scoreMultiplier: 1.6 },
+    { id: 'large', minPlayerRadius: 5, maxPickupRadius: 7.4, massGainMultiplier: 0.86, scoreMultiplier: 2.1 },
+    { id: 'mega', minPlayerRadius: 8.5, maxPickupRadius: 12, massGainMultiplier: 0.84, scoreMultiplier: 2.8 },
+  ],
   movementTuning: {
     accelCurveByRadius: [
       { radius: 0.6, value: 32 },
@@ -65,16 +85,12 @@ export const defaultConfig: GameConfig = {
     driveDamping: 0.65,
     coastDamping: 2.6,
     maxSpeedHeadroomPct: 0.18,
-  },
-  hazardZone: {
-    type: 'water',
-    surfaceMask: 'oceans-and-lakes',
-    penalty: 0.18,
-  },
-  respawnPolicy: {
-    mode: 'quick',
-    sizePenaltyPct: 0.12,
-    safeSpawnResolver: 'nearest-biome-safe-point',
+    baseFollowDistance: 8,
+    distanceScale: 7.2,
+    cameraDistanceExponent: 0.8,
+    baseFollowHeight: 3.3,
+    heightScale: 2.6,
+    cameraHeightExponent: 0.72,
   },
 };
 

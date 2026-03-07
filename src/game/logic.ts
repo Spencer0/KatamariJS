@@ -1,10 +1,12 @@
 import { Spherical, Vector3 } from 'three';
-import type { AssetManifestEntry, BiomeType, CurvePoint, GameConfig, PlayerBallState, PickupEntity } from './types';
+import type { AssetManifestEntry, BiomeType, CurvePoint, GameConfig, GrowthTier, PlayerBallState, PickupEntity } from './types';
 
 const spherical = new Spherical();
 
 export function canAttachPickup(playerRadius: number, pickupRadius: number, config: GameConfig): boolean {
-  return pickupRadius <= playerRadius * config.pickupAttachFactor;
+  const tier = resolveGrowthTier(playerRadius, config.growthTiers);
+  const threshold = Math.min(playerRadius * config.pickupAttachFactor, tier.maxPickupRadius);
+  return pickupRadius <= threshold;
 }
 
 export function calculateRadius(baseRadius: number, mass: number, growthFactor: number): number {
@@ -30,14 +32,25 @@ export function sampleCurve(points: CurvePoint[], radius: number): number {
 }
 
 export function applyPickupToPlayer(player: PlayerBallState, pickup: PickupEntity, config: GameConfig): void {
-  player.mass += pickup.mass;
-  player.score += pickup.valueTier * 100;
+  const tier = resolveGrowthTier(player.radius, config.growthTiers);
+  player.mass += pickup.mass * tier.massGainMultiplier;
+  player.score += Math.round(pickup.valueTier * 100 * tier.scoreMultiplier);
   player.radius = calculateRadius(config.baseRadius, player.mass, config.growthFactor);
   player.attachedPickups.push(pickup);
 }
 
 export function reachedWinCondition(playerRadius: number, targetWinRadius: number): boolean {
   return playerRadius >= targetWinRadius;
+}
+
+export function resolveGrowthTier(playerRadius: number, tiers: GrowthTier[]): GrowthTier {
+  let current = tiers[0];
+  for (const tier of tiers) {
+    if (playerRadius >= tier.minPlayerRadius) {
+      current = tier;
+    }
+  }
+  return current;
 }
 
 export function biomeForPosition(position: Vector3): BiomeType {
@@ -50,29 +63,6 @@ export function biomeForPosition(position: Vector3): BiomeType {
     return 'suburb';
   }
   return 'city';
-}
-
-export function isWaterPosition(position: Vector3): boolean {
-  spherical.setFromVector3(position);
-  const latitude = Math.PI / 2 - spherical.phi;
-  const longitude = spherical.theta;
-
-  const oceanBand = Math.abs(latitude) < 0.22;
-  const lakeA = latitude > 0.46 && latitude < 0.72 && longitude > -2.35 && longitude < -1.8;
-  const lakeB = latitude < -0.42 && latitude > -0.7 && longitude > 1.45 && longitude < 2.1;
-
-  return oceanBand || lakeA || lakeB;
-}
-
-export function safeRespawnPosition(currentPosition: Vector3, planetRadius: number, playerRadius: number): Vector3 {
-  const candidates = [
-    new Vector3(1, 0.42, 0.35),
-    new Vector3(-0.78, 0.39, -0.32),
-    new Vector3(0.34, -0.55, 0.78),
-  ].map((v) => v.normalize().multiplyScalar(planetRadius + playerRadius));
-
-  const sorted = candidates.sort((a, b) => a.distanceToSquared(currentPosition) - b.distanceToSquared(currentPosition));
-  return sorted.find((p) => !isWaterPosition(p)) ?? sorted[0];
 }
 
 export function biomeWeight(entry: AssetManifestEntry, biome: BiomeType): number {

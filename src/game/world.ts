@@ -48,7 +48,6 @@ export function createInitialWorld(): WorldState {
       attachedPickups: [],
       composite,
       rollingContact: estimateRollingContact(composite, new Quaternion(), startPosition, startPosition.clone().normalize()),
-      respawnCount: 0,
     },
     pickups: [],
     elapsed: 0,

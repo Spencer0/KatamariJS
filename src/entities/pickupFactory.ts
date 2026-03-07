@@ -60,6 +60,14 @@ function calibrateVisualRadius(mesh: Mesh, fallback: number): number {
   return Math.max(fallback * 0.65, tempSphere.radius);
 }
 
+function meshMinY(mesh: Mesh): number {
+  tempBox.setFromObject(mesh);
+  if (tempBox.isEmpty()) {
+    return -0.5;
+  }
+  return tempBox.min.y;
+}
+
 function normalizeMeshToRadius(mesh: Mesh, targetRadius: number): void {
   tempBox.setFromObject(mesh);
   if (tempBox.isEmpty()) {
@@ -106,6 +114,8 @@ export async function createPickupEntity(
   mesh.position.copy(position);
 
   const visualRadius = calibrateVisualRadius(mesh, desiredVisualRadius);
+  const minY = meshMinY(mesh);
+  const groundOffset = -(minY + collisionRadius) + (entry.groundingOffset ?? 0);
 
   return {
     id: `pickup-${index}`,
@@ -123,5 +133,8 @@ export async function createPickupEntity(
     inertiaBias: entry.inertiaBias ?? 1,
     massDistributionClass: entry.massDistributionClass ?? 'balanced',
     visualScaleFix: entry.visualScaleFix ?? 1,
+    spawnSector: '',
+    groundOffset,
+    sizeTier: entry.sizeTier ?? 'small',
   };
 }

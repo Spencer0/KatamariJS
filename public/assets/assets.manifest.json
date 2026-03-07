@@ -7,10 +7,16 @@
     "pickupRadius": 0.3,
     "mass": 0.9,
     "valueTier": 1,
-    "tags": ["food", "starter"],
+    "tags": [
+      "food",
+      "starter"
+    ],
     "status": "active",
     "biome": "suburb",
-    "styleTags": ["anime", "japan"],
+    "styleTags": [
+      "anime",
+      "japan"
+    ],
     "qualityScore": 78
   },
   {
@@ -21,10 +27,15 @@
     "pickupRadius": 0.34,
     "mass": 1,
     "valueTier": 1,
-    "tags": ["food"],
+    "tags": [
+      "food"
+    ],
     "status": "active",
     "biome": "suburb",
-    "styleTags": ["anime", "cute"],
+    "styleTags": [
+      "anime",
+      "cute"
+    ],
     "qualityScore": 75
   },
   {
@@ -35,10 +46,16 @@
     "pickupRadius": 0.42,
     "mass": 1.4,
     "valueTier": 2,
-    "tags": ["food", "japan"],
+    "tags": [
+      "food",
+      "japan"
+    ],
     "status": "active",
     "biome": "city",
-    "styleTags": ["anime", "japan"],
+    "styleTags": [
+      "anime",
+      "japan"
+    ],
     "qualityScore": 84
   },
   {
@@ -49,10 +66,15 @@
     "pickupRadius": 0.48,
     "mass": 1.8,
     "valueTier": 2,
-    "tags": ["festival"],
+    "tags": [
+      "festival"
+    ],
     "status": "active",
     "biome": "city",
-    "styleTags": ["anime", "traditional"],
+    "styleTags": [
+      "anime",
+      "traditional"
+    ],
     "qualityScore": 81
   },
   {
@@ -63,10 +85,15 @@
     "pickupRadius": 0.5,
     "mass": 1.9,
     "valueTier": 2,
-    "tags": ["nature"],
+    "tags": [
+      "nature"
+    ],
     "status": "active",
     "biome": "forest",
-    "styleTags": ["anime", "nature"],
+    "styleTags": [
+      "anime",
+      "nature"
+    ],
     "qualityScore": 79
   },
   {
@@ -77,10 +104,16 @@
     "pickupRadius": 0.56,
     "mass": 2.2,
     "valueTier": 3,
-    "tags": ["nature", "japan"],
+    "tags": [
+      "nature",
+      "japan"
+    ],
     "status": "active",
     "biome": "forest",
-    "styleTags": ["anime", "japan"],
+    "styleTags": [
+      "anime",
+      "japan"
+    ],
     "qualityScore": 88
   },
   {
@@ -91,10 +124,15 @@
     "pickupRadius": 0.62,
     "mass": 2.6,
     "valueTier": 3,
-    "tags": ["suburb"],
+    "tags": [
+      "suburb"
+    ],
     "status": "active",
     "biome": "suburb",
-    "styleTags": ["anime", "slice-of-life"],
+    "styleTags": [
+      "anime",
+      "slice-of-life"
+    ],
     "qualityScore": 73
   },
   {
@@ -105,10 +143,15 @@
     "pickupRadius": 0.72,
     "mass": 3,
     "valueTier": 3,
-    "tags": ["street"],
+    "tags": [
+      "street"
+    ],
     "status": "active",
     "biome": "city",
-    "styleTags": ["anime", "urban"],
+    "styleTags": [
+      "anime",
+      "urban"
+    ],
     "qualityScore": 77
   },
   {
@@ -119,10 +162,16 @@
     "pickupRadius": 0.74,
     "mass": 3.2,
     "valueTier": 3,
-    "tags": ["street", "japan"],
+    "tags": [
+      "street",
+      "japan"
+    ],
     "status": "active",
     "biome": "city",
-    "styleTags": ["anime", "neon"],
+    "styleTags": [
+      "anime",
+      "neon"
+    ],
     "qualityScore": 83
   },
   {
@@ -133,10 +182,15 @@
     "pickupRadius": 0.7,
     "mass": 3.1,
     "valueTier": 3,
-    "tags": ["home"],
+    "tags": [
+      "home"
+    ],
     "status": "active",
     "biome": "suburb",
-    "styleTags": ["anime", "home"],
+    "styleTags": [
+      "anime",
+      "home"
+    ],
     "qualityScore": 76
   },
   {
@@ -147,10 +201,14 @@
     "pickupRadius": 0.8,
     "mass": 3.5,
     "valueTier": 4,
-    "tags": ["storage"],
+    "tags": [
+      "storage"
+    ],
     "status": "active",
     "biome": "suburb",
-    "styleTags": ["anime"],
+    "styleTags": [
+      "anime"
+    ],
     "qualityScore": 71
   },
   {
@@ -161,10 +219,15 @@
     "pickupRadius": 0.92,
     "mass": 4.4,
     "valueTier": 4,
-    "tags": ["vehicle"],
+    "tags": [
+      "vehicle"
+    ],
     "status": "active",
     "biome": "city",
-    "styleTags": ["anime", "urban"],
+    "styleTags": [
+      "anime",
+      "urban"
+    ],
     "qualityScore": 74
   },
   {
@@ -175,10 +238,15 @@
     "pickupRadius": 0.86,
     "mass": 4.2,
     "valueTier": 4,
-    "tags": ["nature"],
+    "tags": [
+      "nature"
+    ],
     "status": "active",
     "biome": "forest",
-    "styleTags": ["anime", "nature"],
+    "styleTags": [
+      "anime",
+      "nature"
+    ],
     "qualityScore": 72
   },
   {
@@ -189,10 +257,16 @@
     "pickupRadius": 0.98,
     "mass": 4.9,
     "valueTier": 5,
-    "tags": ["creature", "japan"],
+    "tags": [
+      "creature",
+      "japan"
+    ],
     "status": "active",
     "biome": "forest",
-    "styleTags": ["anime", "folklore"],
+    "styleTags": [
+      "anime",
+      "folklore"
+    ],
     "qualityScore": 89
   },
   {
@@ -203,10 +277,16 @@
     "pickupRadius": 1,
     "mass": 5,
     "valueTier": 5,
-    "tags": ["festival", "japan"],
+    "tags": [
+      "festival",
+      "japan"
+    ],
     "status": "active",
     "biome": "city",
-    "styleTags": ["anime", "festival"],
+    "styleTags": [
+      "anime",
+      "festival"
+    ],
     "qualityScore": 86
   },
   {
@@ -217,10 +297,15 @@
     "pickupRadius": 1.08,
     "mass": 5.8,
     "valueTier": 5,
-    "tags": ["garden"],
+    "tags": [
+      "garden"
+    ],
     "status": "active",
     "biome": "suburb",
-    "styleTags": ["anime", "warm"],
+    "styleTags": [
+      "anime",
+      "warm"
+    ],
     "qualityScore": 80
   },
   {
@@ -231,10 +316,16 @@
     "pickupRadius": 1.25,
     "mass": 7.2,
     "valueTier": 6,
-    "tags": ["landmark", "japan"],
+    "tags": [
+      "landmark",
+      "japan"
+    ],
     "status": "active",
     "biome": "forest",
-    "styleTags": ["anime", "japan"],
+    "styleTags": [
+      "anime",
+      "japan"
+    ],
     "qualityScore": 91
   },
   {
@@ -245,10 +336,16 @@
     "pickupRadius": 1.22,
     "mass": 7,
     "valueTier": 6,
-    "tags": ["city", "machine"],
+    "tags": [
+      "city",
+      "machine"
+    ],
     "status": "active",
     "biome": "city",
-    "styleTags": ["anime", "japan"],
+    "styleTags": [
+      "anime",
+      "japan"
+    ],
     "qualityScore": 87
   },
   {
@@ -259,10 +356,15 @@
     "pickupRadius": 1.38,
     "mass": 8.4,
     "valueTier": 7,
-    "tags": ["vehicle"],
+    "tags": [
+      "vehicle"
+    ],
     "status": "active",
     "biome": "suburb",
-    "styleTags": ["anime", "transport"],
+    "styleTags": [
+      "anime",
+      "transport"
+    ],
     "qualityScore": 85
   },
   {
@@ -273,10 +375,16 @@
     "pickupRadius": 1.5,
     "mass": 9.1,
     "valueTier": 7,
-    "tags": ["nature", "japan"],
+    "tags": [
+      "nature",
+      "japan"
+    ],
     "status": "active",
     "biome": "forest",
-    "styleTags": ["anime", "sakura"],
+    "styleTags": [
+      "anime",
+      "sakura"
+    ],
     "qualityScore": 93
   },
   {
@@ -287,10 +395,292 @@
     "pickupRadius": 0.28,
     "mass": 0.8,
     "valueTier": 1,
-    "tags": ["legacy"],
+    "tags": [
+      "legacy"
+    ],
     "status": "deprecated",
     "biome": "suburb",
-    "styleTags": ["legacy"],
+    "styleTags": [
+      "legacy"
+    ],
     "qualityScore": 60
+  },
+  {
+    "id": "pickup.house.v1",
+    "glbPath": "/assets/glb/pickup.house.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 2.1,
+    "mass": 16,
+    "valueTier": 8,
+    "tags": [
+      "structure",
+      "suburb"
+    ],
+    "status": "active",
+    "biome": "suburb",
+    "styleTags": [
+      "anime",
+      "japan",
+      "house"
+    ],
+    "qualityScore": 82,
+    "sizeTier": "large",
+    "spawnWeight": 0.75,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.house-jp.v1",
+    "glbPath": "/assets/glb/pickup.house-jp.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 2.4,
+    "mass": 18,
+    "valueTier": 8,
+    "tags": [
+      "structure",
+      "japan"
+    ],
+    "status": "active",
+    "biome": "suburb",
+    "styleTags": [
+      "anime",
+      "japan"
+    ],
+    "qualityScore": 84,
+    "sizeTier": "large",
+    "spawnWeight": 0.7,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.apartment.v1",
+    "glbPath": "/assets/glb/pickup.apartment.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 2.8,
+    "mass": 22,
+    "valueTier": 9,
+    "tags": [
+      "structure",
+      "city"
+    ],
+    "status": "active",
+    "biome": "city",
+    "styleTags": [
+      "anime",
+      "urban"
+    ],
+    "qualityScore": 81,
+    "sizeTier": "large",
+    "spawnWeight": 0.62,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.office-tower.v1",
+    "glbPath": "/assets/glb/pickup.office-tower.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 3.2,
+    "mass": 26,
+    "valueTier": 9,
+    "tags": [
+      "structure",
+      "tower"
+    ],
+    "status": "active",
+    "biome": "city",
+    "styleTags": [
+      "anime",
+      "urban"
+    ],
+    "qualityScore": 83,
+    "sizeTier": "large",
+    "spawnWeight": 0.55,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.skyscraper.v1",
+    "glbPath": "/assets/glb/pickup.skyscraper.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 4.1,
+    "mass": 34,
+    "valueTier": 10,
+    "tags": [
+      "structure",
+      "tower"
+    ],
+    "status": "active",
+    "biome": "city",
+    "styleTags": [
+      "anime",
+      "megacity"
+    ],
+    "qualityScore": 86,
+    "sizeTier": "mega",
+    "spawnWeight": 0.4,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.temple.v1",
+    "glbPath": "/assets/glb/pickup.temple.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 3.6,
+    "mass": 30,
+    "valueTier": 10,
+    "tags": [
+      "structure",
+      "japan"
+    ],
+    "status": "active",
+    "biome": "forest",
+    "styleTags": [
+      "anime",
+      "japan"
+    ],
+    "qualityScore": 88,
+    "sizeTier": "mega",
+    "spawnWeight": 0.45,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.clocktower.v1",
+    "glbPath": "/assets/glb/pickup.clocktower.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 3.4,
+    "mass": 29,
+    "valueTier": 10,
+    "tags": [
+      "landmark",
+      "tower"
+    ],
+    "status": "active",
+    "biome": "city",
+    "styleTags": [
+      "anime",
+      "landmark"
+    ],
+    "qualityScore": 80,
+    "sizeTier": "mega",
+    "spawnWeight": 0.44,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.parking-garage.v1",
+    "glbPath": "/assets/glb/pickup.parking-garage.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 3.8,
+    "mass": 31,
+    "valueTier": 10,
+    "tags": [
+      "structure",
+      "city"
+    ],
+    "status": "active",
+    "biome": "city",
+    "styleTags": [
+      "anime",
+      "urban"
+    ],
+    "qualityScore": 79,
+    "sizeTier": "mega",
+    "spawnWeight": 0.38,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.radio-tower.v1",
+    "glbPath": "/assets/glb/pickup.radio-tower.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 4.5,
+    "mass": 36,
+    "valueTier": 11,
+    "tags": [
+      "tower",
+      "infrastructure"
+    ],
+    "status": "active",
+    "biome": "suburb",
+    "styleTags": [
+      "anime",
+      "industrial"
+    ],
+    "qualityScore": 78,
+    "sizeTier": "mega",
+    "spawnWeight": 0.34,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.windmill.v1",
+    "glbPath": "/assets/glb/pickup.windmill.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 3.1,
+    "mass": 24,
+    "valueTier": 9,
+    "tags": [
+      "landmark",
+      "rural"
+    ],
+    "status": "active",
+    "biome": "forest",
+    "styleTags": [
+      "anime",
+      "nature"
+    ],
+    "qualityScore": 82,
+    "sizeTier": "large",
+    "spawnWeight": 0.55,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.shopping-arcade.v1",
+    "glbPath": "/assets/glb/pickup.shopping-arcade.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 4.2,
+    "mass": 35,
+    "valueTier": 11,
+    "tags": [
+      "structure",
+      "commerce"
+    ],
+    "status": "active",
+    "biome": "suburb",
+    "styleTags": [
+      "anime",
+      "citypop"
+    ],
+    "qualityScore": 84,
+    "sizeTier": "mega",
+    "spawnWeight": 0.36,
+    "groundingOffset": 0
+  },
+  {
+    "id": "pickup.castle-gate.v1",
+    "glbPath": "/assets/glb/pickup.castle-gate.v1.glb",
+    "category": "pickup",
+    "scale": 1,
+    "pickupRadius": 4.8,
+    "mass": 40,
+    "valueTier": 12,
+    "tags": [
+      "landmark",
+      "japan"
+    ],
+    "status": "active",
+    "biome": "forest",
+    "styleTags": [
+      "anime",
+      "japan",
+      "historic"
+    ],
+    "qualityScore": 87,
+    "sizeTier": "mega",
+    "spawnWeight": 0.3,
+    "groundingOffset": 0
   }
 ]

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('game boots, shows loading progress, supports pause menu, and handles water respawn', async ({ page }) => {
+test('game boots, shows loading progress, supports pause menu, and runs in no-water mode', async ({ page }) => {
   const consoleErrors: string[] = [];
   const failedRequests: string[] = [];
 
@@ -26,11 +26,7 @@ test('game boots, shows loading progress, supports pause menu, and handles water
   await page.keyboard.press('Escape');
   await expect(page.locator('.pause-menu')).toBeHidden();
 
-  await page.evaluate(() => {
-    (window as unknown as { __katamariDebug: { forceWaterFall: () => void } }).__katamariDebug.forceWaterFall();
-  });
-
-  await expect(page.locator('.phase')).toContainText('Roll around the planet', { timeout: 5000 });
+  await expect(page.locator('.phase')).toContainText('Collect everything', { timeout: 5000 });
 
   const map = async (left: { x: number; y: number }, right: { x: number; y: number }) => (
     page.evaluate(([l, r]) => (

@@ -6,14 +6,15 @@ import {
   Mesh,
   MeshStandardMaterial,
   PerspectiveCamera,
+  Quaternion,
   Scene,
   SphereGeometry,
   Vector3,
   WebGLRenderer,
 } from 'three';
 import { createPickupEntity } from '../entities/pickupFactory';
-import { computeHandContactState, estimateRollingContact, recomputeCompositeBody } from './compositePhysics';
-import { calculateRadius, isWaterPosition, safeRespawnPosition } from './logic';
+import { computeHandContactState } from './compositePhysics';
+import { biomeForPosition } from './logic';
 import { getActivePickups, loadAssetManifest, loadAudioManifest, pickEntriesForBiome } from './manifest';
 import { createInitialWorld } from './world';
 import { CameraSystem } from '../systems/cameraSystem';
@@ -25,26 +26,17 @@ import { createHud, UISystem } from '../systems/uiSystem';
 import { AudioSystem } from '../systems/audioSystem';
 import { DebugPhysicsOverlay } from '../systems/debugPhysicsOverlay';
 import { HandOverlaySystem } from '../systems/handOverlaySystem';
-import type { AssetManifestEntry, BiomeType } from './types';
+import type { AssetManifestEntry, BiomeType, PickupEntity } from './types';
 
-const planetCenter = new Vector3(0, 0, 0);
+const tempPlayerDir = new Vector3();
+const tempDir = new Vector3();
+const tangentA = new Vector3();
+const tangentB = new Vector3();
+const worldForward = new Vector3(0, 0, 1);
+const alignQuat = new Quaternion();
 
 function baseUrl(path: string): string {
   return new URL(path, window.location.origin + import.meta.env.BASE_URL).toString();
-}
-
-function randomDirectionInBiome(biome: BiomeType): Vector3 {
-  const ranges: Record<BiomeType, [number, number]> = {
-    forest: [-Math.PI, -Math.PI / 3],
-    city: [-Math.PI / 3, Math.PI / 3],
-    suburb: [Math.PI / 3, Math.PI],
-  };
-
-  const [minLon, maxLon] = ranges[biome];
-  const lon = minLon + Math.random() * (maxLon - minLon);
-  const lat = (Math.random() * 1.5 - 0.75) * 0.8;
-  const r = Math.cos(lat);
-  return new Vector3(r * Math.sin(lon), Math.sin(lat), r * Math.cos(lon)).normalize();
 }
 
 function biomeColor(biome: BiomeType): string {
@@ -57,18 +49,69 @@ function biomeColor(biome: BiomeType): string {
   return '#94d82d';
 }
 
+function randomDirectionInBiome(biome: BiomeType): Vector3 {
+  const ranges: Record<BiomeType, [number, number]> = {
+    forest: [-Math.PI, -Math.PI / 3],
+    city: [-Math.PI / 3, Math.PI / 3],
+    suburb: [Math.PI / 3, Math.PI],
+  };
+
+  const [minLon, maxLon] = ranges[biome];
+  const lon = minLon + Math.random() * (maxLon - minLon);
+  const lat = (Math.random() * 1.5 - 0.75) * 0.85;
+  const r = Math.cos(lat);
+  return new Vector3(r * Math.sin(lon), Math.sin(lat), r * Math.cos(lon)).normalize();
+}
+
+function randomDirectionAround(centerDir: Vector3, maxAngleRad: number): Vector3 {
+  tangentA.copy(centerDir).cross(worldForward);
+  if (tangentA.lengthSq() < 1e-6) {
+    tangentA.set(1, 0, 0);
+  }
+  tangentA.normalize();
+  tangentB.copy(centerDir).cross(tangentA).normalize();
+
+  const theta = Math.random() * 2 * Math.PI;
+  const angle = Math.random() * maxAngleRad;
+  const tangent = tangentA.clone().multiplyScalar(Math.cos(theta)).addScaledVector(tangentB, Math.sin(theta)).normalize();
+
+  return centerDir.clone().multiplyScalar(Math.cos(angle)).addScaledVector(tangent, Math.sin(angle)).normalize();
+}
+
+function weightedEntry(pool: AssetManifestEntry[]): AssetManifestEntry {
+  let totalWeight = 0;
+  for (const entry of pool) {
+    totalWeight += entry.spawnWeight ?? 1;
+  }
+
+  let cursor = Math.random() * totalWeight;
+  for (const entry of pool) {
+    cursor -= entry.spawnWeight ?? 1;
+    if (cursor <= 0) {
+      return entry;
+    }
+  }
+
+  return pool[pool.length - 1];
+}
+
+function sectorKey(direction: Vector3): string {
+  const lon = Math.atan2(direction.x, direction.z);
+  const lat = Math.asin(direction.y);
+  const lonIndex = Math.floor((lon + Math.PI) / (Math.PI / 12));
+  const latIndex = Math.floor((lat + Math.PI / 2) / (Math.PI / 12));
+  return `${latIndex}:${lonIndex}`;
+}
+
 export class Game {
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
-  private readonly camera = new PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 600);
+  private readonly camera = new PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 8000);
   private readonly world = createInitialWorld();
   private readonly playerBody = new Group();
   private readonly playerCoreMesh: Mesh;
   private readonly audioSystem = new AudioSystem();
   private readonly debugOverlay: DebugPhysicsOverlay;
-
-  private lastFrameTime = 0;
-  private isAudioStarted = false;
 
   private readonly inputSystem: InputSystem;
   private readonly movementSystem: MovementSystem;
@@ -77,6 +120,13 @@ export class Game {
   private readonly cameraSystem: CameraSystem;
   private readonly handOverlaySystem: HandOverlaySystem;
   private readonly uiSystem: UISystem;
+
+  private lastFrameTime = 0;
+  private isAudioStarted = false;
+  private spawnTimer = 0;
+  private spawnInFlight = 0;
+  private nextPickupId = 0;
+  private activePickupEntries: AssetManifestEntry[] = [];
 
   constructor(private readonly root: HTMLElement) {
     this.renderer = new WebGLRenderer({ antialias: true });
@@ -103,13 +153,13 @@ export class Game {
     const ambient = new AmbientLight('#ffffff', 0.62);
     this.scene.add(ambient);
     const directional = new DirectionalLight('#ffffff', 1.24);
-    directional.position.set(22, 28, 18);
+    directional.position.set(220, 280, 180);
     directional.castShadow = true;
     this.scene.add(directional);
 
     this.debugOverlay = new DebugPhysicsOverlay(this.scene);
 
-    this.camera.position.set(0, 60, 80);
+    this.camera.position.set(0, 400, 620);
 
     this.inputSystem = new InputSystem(this.renderer.domElement);
     this.movementSystem = new MovementSystem(this.playerBody, this.camera);
@@ -152,17 +202,18 @@ export class Game {
 
   private async bootstrapRuntime(): Promise<void> {
     this.world.loading.stageLabel = 'Loading manifests';
-    this.world.loading.total = 4;
+    this.world.loading.total = 3;
     this.world.loading.loaded = 0;
 
     const entries = await loadAssetManifest(baseUrl('assets/assets.manifest.json'));
+    this.activePickupEntries = getActivePickups(entries);
     this.world.loading.loaded += 1;
 
     const tracks = await loadAudioManifest(baseUrl('assets/audio.manifest.json'));
     this.world.loading.loaded += 1;
 
-    this.world.loading.stageLabel = 'Spawning world pickups';
-    await this.spawnPickups(entries);
+    this.world.loading.stageLabel = 'Seeding world density';
+    await this.seedInitialPickups();
     this.world.loading.loaded += 1;
 
     const activeTrack = tracks.find((t) => t.status === 'active');
@@ -195,40 +246,97 @@ export class Game {
       shell.receiveShadow = true;
       this.scene.add(shell);
     }
-
-    const waterBand = new Mesh(
-      new SphereGeometry(radius + 0.05, widthSeg, heightSeg, 0, 2 * Math.PI, Math.PI * 0.43, Math.PI * 0.14),
-      new MeshStandardMaterial({ color: '#1971c2', roughness: 0.12, metalness: 0.22, transparent: true, opacity: 0.82 }),
-    );
-    this.scene.add(waterBand);
   }
 
-  private async spawnPickups(entries: AssetManifestEntry[]): Promise<void> {
-    const activePickups = getActivePickups(entries);
-    if (activePickups.length === 0) {
+  private alignPickupToSurface(entity: PickupEntity, direction: Vector3): void {
+    alignQuat.setFromUnitVectors(new Vector3(0, 1, 0), direction);
+    entity.mesh.quaternion.copy(alignQuat);
+    entity.mesh.rotateOnAxis(direction, Math.random() * Math.PI * 2);
+    entity.mesh.position.copy(
+      direction.multiplyScalar(
+        this.world.config.worldGeometry.planetRadius + entity.radius + entity.groundOffset,
+      ),
+    );
+    entity.position.copy(entity.mesh.position);
+  }
+
+  private async seedInitialPickups(): Promise<void> {
+    if (this.activePickupEntries.length === 0) {
       return;
     }
-    const targetCount = Math.min(120, Math.max(48, activePickups.length * 4));
-    this.world.loading.total += targetCount;
 
-    for (let i = 0; i < targetCount; i += 1) {
+    const seedCount = Math.min(160, Math.floor(this.world.config.pickupDensity.minActive * 0.4));
+    for (let i = 0; i < seedCount; i += 1) {
       const biome: BiomeType = i % 3 === 0 ? 'forest' : i % 3 === 1 ? 'city' : 'suburb';
-      const biomePool = pickEntriesForBiome(activePickups, biome);
-      const entry = biomePool[i % Math.max(1, biomePool.length)] ?? activePickups[i % activePickups.length];
+      const direction = randomDirectionInBiome(biome);
+      await this.spawnPickupAtDirection(direction);
+    }
+  }
 
-      let direction = randomDirectionInBiome(biome);
-      let attempts = 0;
-      while (attempts < 6 && isWaterPosition(direction.clone().multiplyScalar(this.world.config.worldGeometry.planetRadius))) {
-        direction = randomDirectionInBiome(biome);
-        attempts += 1;
+  private async spawnPickupAtDirection(direction: Vector3): Promise<void> {
+    if (this.activePickupEntries.length === 0) {
+      return;
+    }
+
+    const surfacePosition = direction.clone().multiplyScalar(this.world.config.worldGeometry.planetRadius);
+    const biome = biomeForPosition(surfacePosition);
+    const pool = pickEntriesForBiome(this.activePickupEntries, biome);
+    if (pool.length === 0) {
+      return;
+    }
+
+    const entry = weightedEntry(pool);
+    const entity = await createPickupEntity(this.nextPickupId, entry, biome, new Vector3());
+    this.nextPickupId += 1;
+    entity.spawnSector = sectorKey(direction);
+    this.alignPickupToSurface(entity, direction.clone());
+    this.world.pickups.push(entity);
+    this.scene.add(entity.mesh);
+  }
+
+  private recycleFarPickups(): void {
+    const keepAngleRad = (this.world.config.pickupDensity.keepAliveAngleDeg * Math.PI) / 180;
+    const keepDot = Math.cos(keepAngleRad);
+    tempPlayerDir.copy(this.playerBody.position).normalize();
+
+    this.world.pickups = this.world.pickups.filter((pickup) => {
+      if (pickup.attached) {
+        return true;
       }
+      tempDir.copy(pickup.mesh.position).normalize();
+      if (tempDir.dot(tempPlayerDir) >= keepDot) {
+        return true;
+      }
+      this.scene.remove(pickup.mesh);
+      return false;
+    });
+  }
 
-      const position = direction.multiplyScalar(this.world.config.worldGeometry.planetRadius + entry.pickupRadius);
-      const entity = await createPickupEntity(i, entry, biome, position);
-      entity.mesh.lookAt(planetCenter);
-      this.world.pickups.push(entity);
-      this.scene.add(entity.mesh);
-      this.world.loading.loaded += 1;
+  private maintainPickupDensity(dt: number): void {
+    this.spawnTimer += dt;
+    if (this.spawnTimer < this.world.config.pickupDensity.refillIntervalSec) {
+      return;
+    }
+    this.spawnTimer = 0;
+
+    this.recycleFarPickups();
+    if (this.world.pickups.length >= this.world.config.pickupDensity.minActive) {
+      return;
+    }
+
+    tempPlayerDir.copy(this.playerBody.position).normalize();
+    const spawnAngle = (this.world.config.pickupDensity.spawnAngleDeg * Math.PI) / 180;
+    const target = Math.min(
+      this.world.config.pickupDensity.activeCap,
+      this.world.pickups.length + this.world.config.pickupDensity.spawnBatchSize,
+    );
+
+    while (this.world.pickups.length + this.spawnInFlight < target && this.spawnInFlight < 24) {
+      const direction = randomDirectionAround(tempPlayerDir, spawnAngle);
+      this.spawnInFlight += 1;
+      void this.spawnPickupAtDirection(direction).finally(() => {
+        this.spawnInFlight = Math.max(0, this.spawnInFlight - 1);
+      });
     }
   }
 
@@ -244,13 +352,7 @@ export class Game {
       this.world.playerPosition.copy(this.playerBody.position);
       this.pickupSystem.update(this.world);
       this.growthSystem.update(this.world);
-      this.handleHazards();
-    }
-
-    if (this.world.phase === 'respawning') {
-      this.world.player.velocity.multiplyScalar(0.5);
-      this.world.player.angularVelocity.multiplyScalar(0.3);
-      this.world.phase = 'playing';
+      this.maintainPickupDensity(dt);
     }
 
     if (this.world.phase !== 'paused') {
@@ -263,44 +365,6 @@ export class Game {
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.loop);
   };
-
-  private handleHazards(): void {
-    if (!isWaterPosition(this.playerBody.position)) {
-      return;
-    }
-
-    this.world.phase = 'respawning';
-    this.world.player.respawnCount += 1;
-    this.world.player.mass *= 1 - this.world.config.respawnPolicy.sizePenaltyPct;
-    this.world.player.radius = Math.max(
-      this.world.config.baseRadius,
-      calculateRadius(this.world.config.baseRadius, this.world.player.mass, this.world.config.growthFactor),
-    );
-
-    const next = safeRespawnPosition(
-      this.playerBody.position,
-      this.world.config.worldGeometry.planetRadius,
-      this.world.player.radius,
-    );
-    this.playerBody.position.copy(next);
-    this.world.player.velocity.set(0, 0, 0);
-    this.world.player.angularVelocity.set(0, 0, 0);
-    this.world.playerPosition.copy(next);
-    this.world.player.orientation.identity();
-    this.playerBody.quaternion.identity();
-    this.world.player.heading.set(0, 0, 1).projectOnPlane(next.clone().normalize()).normalize();
-    this.world.player.intentDirection.set(0, 0, 0);
-    this.world.player.handContact.leftActive = false;
-    this.world.player.handContact.rightActive = false;
-
-    recomputeCompositeBody(this.world.player.composite, this.world.config.baseMass);
-    this.world.player.rollingContact = estimateRollingContact(
-      this.world.player.composite,
-      this.world.player.orientation,
-      this.playerBody.position,
-      this.playerBody.position.clone().normalize(),
-    );
-  }
 
   private onResize = (): void => {
     this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -354,9 +418,8 @@ export class Game {
   };
 
   debugForceWaterFall(): void {
-    this.playerBody.position.set(this.world.config.worldGeometry.planetRadius + this.world.player.radius, 0, 0);
-    this.world.playerPosition.copy(this.playerBody.position);
-    this.handleHazards();
+    // Water hazards removed. Keep debug hook for e2e compatibility.
+    this.world.phase = 'playing';
   }
 
   debugPhase(): string {

@@ -11,6 +11,7 @@ const contactDir = new Vector3();
 export class DebugPhysicsOverlay {
   private group = new Group();
   private pickupGroup = new Group();
+  private pickupGroundGroup = new Group();
   private pickupBoundsVisible = false;
   private comMarker = new Mesh(new SphereGeometry(0.08, 10, 10), new MeshBasicMaterial({ color: '#f03e3e' }));
   private axisXArrow = new ArrowHelper(axisX, new Vector3(), 0.8, new Color('#339af0').getHex());
@@ -22,7 +23,8 @@ export class DebugPhysicsOverlay {
     this.group.visible = false;
     this.group.add(this.comMarker, this.axisXArrow, this.axisYArrow, this.axisZArrow, this.contactArrow);
     this.pickupGroup.visible = false;
-    scene.add(this.group, this.pickupGroup);
+    this.pickupGroundGroup.visible = false;
+    scene.add(this.group, this.pickupGroup, this.pickupGroundGroup);
   }
 
   setVisible(visible: boolean): void {
@@ -37,6 +39,7 @@ export class DebugPhysicsOverlay {
   togglePickupBounds(): boolean {
     this.pickupBoundsVisible = !this.pickupBoundsVisible;
     this.pickupGroup.visible = this.pickupBoundsVisible;
+    this.pickupGroundGroup.visible = this.pickupBoundsVisible;
     return this.pickupBoundsVisible;
   }
 
@@ -68,18 +71,28 @@ export class DebugPhysicsOverlay {
           new MeshBasicMaterial({ color: '#00d8ff', wireframe: true }),
         );
         this.pickupGroup.add(marker);
+        const groundMarker = new Mesh(
+          new SphereGeometry(0.25, 8, 8),
+          new MeshBasicMaterial({ color: '#ffd43b', wireframe: true }),
+        );
+        this.pickupGroundGroup.add(groundMarker);
       }
 
       for (let i = 0; i < this.pickupGroup.children.length; i += 1) {
         const marker = this.pickupGroup.children[i] as Mesh;
+        const groundMarker = this.pickupGroundGroup.children[i] as Mesh;
         const pickup = world.pickups[i];
         if (!pickup || pickup.attached) {
           marker.visible = false;
+          groundMarker.visible = false;
           continue;
         }
         marker.visible = true;
         marker.position.copy(pickup.mesh.position);
         marker.scale.setScalar(pickup.radius);
+        groundMarker.visible = true;
+        groundMarker.position.copy(pickup.mesh.position).normalize().multiplyScalar(world.config.worldGeometry.planetRadius);
+        groundMarker.scale.setScalar(Math.max(0.12, pickup.radius * 0.2));
       }
     }
   }
