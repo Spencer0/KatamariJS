@@ -5,6 +5,9 @@ export interface HudElements {
   root: HTMLDivElement;
   score: HTMLSpanElement;
   radius: HTMLSpanElement;
+  angularVelocity: HTMLSpanElement;
+  linearVelocity: HTMLSpanElement;
+  heading: HTMLSpanElement;
   target: HTMLSpanElement;
   biome: HTMLSpanElement;
   phase: HTMLDivElement;
@@ -25,6 +28,9 @@ export function createHud(container: HTMLElement, handlers: HudHandlers): HudEle
 
   const score = document.createElement('span');
   const radius = document.createElement('span');
+  const angularVelocity = document.createElement('span');
+  const linearVelocity = document.createElement('span');
+  const heading = document.createElement('span');
   const target = document.createElement('span');
   const biome = document.createElement('span');
   const phase = document.createElement('div');
@@ -38,7 +44,7 @@ export function createHud(container: HTMLElement, handlers: HudHandlers): HudEle
   const loadingLabel = document.createElement('div');
   loadingLabel.className = 'loading-label';
 
-  root.append(score, radius, target, biome, phase, loadingLabel, loadingShell);
+  root.append(score, radius, angularVelocity, linearVelocity, heading, target, biome, phase, loadingLabel, loadingShell);
 
   const pauseMenu = document.createElement('div');
   pauseMenu.className = 'pause-menu hidden';
@@ -57,7 +63,21 @@ export function createHud(container: HTMLElement, handlers: HudHandlers): HudEle
   pauseMenu.append(pauseTitle, resetButton, muteButton);
   container.append(root, pauseMenu);
 
-  return { root, score, radius, target, biome, phase, loadingBar, loadingLabel, pauseMenu, muteButton };
+  return {
+    root,
+    score,
+    radius,
+    angularVelocity,
+    linearVelocity,
+    heading,
+    target,
+    biome,
+    phase,
+    loadingBar,
+    loadingLabel,
+    pauseMenu,
+    muteButton,
+  };
 }
 
 export class UISystem {
@@ -66,6 +86,9 @@ export class UISystem {
   update(world: WorldState): void {
     this.hud.score.textContent = `Score: ${world.player.score}`;
     this.hud.radius.textContent = `Radius: ${world.player.radius.toFixed(2)}`;
+    this.hud.angularVelocity.textContent = `Angular Vel: ${world.player.angularVelocity.length().toFixed(2)} rad/s`;
+    this.hud.linearVelocity.textContent = `Linear Vel: ${world.player.velocity.length().toFixed(2)} u/s`;
+    this.hud.heading.textContent = `Heading: (${world.player.heading.x.toFixed(2)}, ${world.player.heading.z.toFixed(2)})`;
     this.hud.target.textContent = `Goal: ${world.config.targetWinRadius.toFixed(2)}`;
     this.hud.biome.textContent = `Biome: ${biomeForPosition(world.playerPosition).toUpperCase()}`;
 
