@@ -48,6 +48,7 @@ export interface MovementTuning {
   accelCurveByRadius: CurvePoint[];
   dragCurveByRadius: CurvePoint[];
   maxSpeedCurveByRadius: CurvePoint[];
+  targetLinearSpeedCurveByRadius: CurvePoint[];
   settleTorque: number;
   contactDamping: number;
   maxAngularSpeed: number;
@@ -61,6 +62,10 @@ export interface MovementTuning {
   headingResponsiveness: number;
   inputDeadzone: number;
   cameraHeadingLag: number;
+  driveResponse: number;
+  driveDamping: number;
+  coastDamping: number;
+  maxSpeedHeadroomPct: number;
 }
 
 export interface HazardZone {

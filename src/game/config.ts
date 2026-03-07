@@ -42,6 +42,12 @@ export const defaultConfig: GameConfig = {
       { radius: 2.8, value: 13 },
       { radius: 4.8, value: 15 },
     ],
+    targetLinearSpeedCurveByRadius: [
+      { radius: 0.6, value: 5 },
+      { radius: 1.3, value: 7 },
+      { radius: 2.8, value: 9.5 },
+      { radius: 4.8, value: 12 },
+    ],
     settleTorque: 8.2,
     contactDamping: 2.2,
     maxAngularSpeed: 12,
@@ -55,6 +61,10 @@ export const defaultConfig: GameConfig = {
     headingResponsiveness: 5.2,
     inputDeadzone: 0.09,
     cameraHeadingLag: 4.8,
+    driveResponse: 5.4,
+    driveDamping: 0.65,
+    coastDamping: 2.6,
+    maxSpeedHeadroomPct: 0.18,
   },
   hazardZone: {
     type: 'water',

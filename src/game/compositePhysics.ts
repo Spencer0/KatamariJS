@@ -226,6 +226,27 @@ export function clampVectorMagnitude(v: Vector3, max: number): void {
   }
 }
 
+export function dampingFactor(rate: number, dt: number): number {
+  return Math.exp(-Math.max(0, rate) * Math.max(0, dt));
+}
+
+export function desiredAngularVelocityFromLinear(
+  up: Vector3,
+  desiredLinear: Vector3,
+  effectiveRadius: number,
+): Vector3 {
+  const safeRadius = Math.max(0.0001, effectiveRadius);
+  return up.clone().cross(desiredLinear).multiplyScalar(1 / safeRadius);
+}
+
+export function applySoftSpeedCap(speed: number, cap: number, excessRetention = 0.2): number {
+  if (speed <= cap) {
+    return speed;
+  }
+  const retained = Math.max(0, Math.min(1, excessRetention));
+  return cap + (speed - cap) * retained;
+}
+
 function applyDeadzone(v: Vector3, deadzone: number): Vector3 {
   const mag = v.length();
   if (mag <= deadzone) {

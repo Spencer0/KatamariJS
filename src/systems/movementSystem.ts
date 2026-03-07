@@ -1,9 +1,12 @@
 import { Quaternion, Vector3 } from 'three';
 import type { Camera, Object3D } from 'three';
 import {
+  applySoftSpeedCap,
   approximateAngularAcceleration,
   clampVectorMagnitude,
   computeHandContactState,
+  dampingFactor,
+  desiredAngularVelocityFromLinear,
   estimateRollingContact,
   lowestSupportDirectionWorld,
   writeHandContactDebug,
@@ -26,6 +29,8 @@ const settleTorque = new Vector3();
 const angularDelta = new Vector3();
 const linearFromRoll = new Vector3();
 const projectedVelocity = new Vector3();
+const desiredLinear = new Vector3();
+const desiredOmega = new Vector3();
 const downWorld = new Vector3();
 const worldUp = new Vector3(0, 1, 0);
 const deltaQuat = new Quaternion();
@@ -106,9 +111,6 @@ export class MovementSystem {
       world.player.angularVelocity.addScaledVector(settleTorque, dt);
     }
 
-    const damping = Math.exp(-world.config.movementTuning.contactDamping * dt);
-    world.player.angularVelocity.multiplyScalar(damping);
-
     clampVectorMagnitude(world.player.angularVelocity, world.config.movementTuning.maxAngularSpeed * speedMultiplier);
 
     const omega = world.player.angularVelocity.length();
@@ -136,11 +138,13 @@ export class MovementSystem {
       handState.rightActive,
     );
 
-    linearFromRoll.copy(world.player.angularVelocity).cross(radialUp).multiplyScalar(rollingContact.effectiveRadius);
-
     netIntent.copy(handState.netIntent).projectOnPlane(radialUp);
+    let driveInputMagnitude = 0;
     if (netIntent.lengthSq() > 1e-5) {
       netIntent.normalize();
+      const leftMagnitude = Math.hypot(world.input.leftStickX, world.input.leftStickY);
+      const rightMagnitude = Math.hypot(world.input.rightStickX, world.input.rightStickY);
+      driveInputMagnitude = Math.max(0, Math.min(1, (leftMagnitude + rightMagnitude) * 0.5));
       world.player.intentDirection.copy(netIntent);
       headingForward.lerp(netIntent, Math.min(1, dt * world.config.movementTuning.headingResponsiveness)).normalize();
     } else {
@@ -148,17 +152,39 @@ export class MovementSystem {
     }
     world.player.heading.copy(headingForward);
 
+    if (driveInputMagnitude > 0.001) {
+      const targetLinearSpeed = sampleCurve(world.config.movementTuning.targetLinearSpeedCurveByRadius, world.player.radius)
+        * driveInputMagnitude
+        * speedMultiplier;
+      desiredLinear.copy(world.player.intentDirection).multiplyScalar(targetLinearSpeed);
+      desiredOmega.copy(desiredAngularVelocityFromLinear(radialUp, desiredLinear, rollingContact.effectiveRadius));
+      world.player.angularVelocity.lerp(desiredOmega, Math.min(1, dt * world.config.movementTuning.driveResponse));
+    }
+
+    const motionDamping = dampingFactor(
+      driveInputMagnitude > 0.001 ? world.config.movementTuning.driveDamping : world.config.movementTuning.coastDamping,
+      dt,
+    );
+    world.player.angularVelocity.multiplyScalar(motionDamping);
+    clampVectorMagnitude(world.player.angularVelocity, world.config.movementTuning.maxAngularSpeed * speedMultiplier);
+
+    linearFromRoll.copy(world.player.angularVelocity).cross(radialUp).multiplyScalar(rollingContact.effectiveRadius);
+
     projectedVelocity.copy(world.player.velocity).projectOnPlane(radialUp);
     const blend = Math.min(1, dt * (8 + sampleCurve(world.config.movementTuning.accelCurveByRadius, world.player.radius) * 0.25));
     projectedVelocity.lerp(linearFromRoll, blend);
 
-    const maxSpeed = sampleCurve(world.config.movementTuning.maxSpeedCurveByRadius, world.player.radius) * speedMultiplier;
-    if (projectedVelocity.length() > maxSpeed) {
-      projectedVelocity.setLength(maxSpeed);
+    const targetSpeedForCap = sampleCurve(world.config.movementTuning.targetLinearSpeedCurveByRadius, world.player.radius) * speedMultiplier;
+    const softCap = targetSpeedForCap * (1 + world.config.movementTuning.maxSpeedHeadroomPct);
+    const hardCap = Math.max(softCap, sampleCurve(world.config.movementTuning.maxSpeedCurveByRadius, world.player.radius) * speedMultiplier);
+    const currentSpeed = projectedVelocity.length();
+    const softenedSpeed = applySoftSpeedCap(currentSpeed, softCap, 0.2);
+    if (softenedSpeed < currentSpeed) {
+      projectedVelocity.setLength(softenedSpeed);
     }
-
-    const drag = sampleCurve(world.config.movementTuning.dragCurveByRadius, world.player.radius);
-    projectedVelocity.multiplyScalar(Math.max(0, Math.min(1, drag)));
+    if (projectedVelocity.length() > hardCap) {
+      projectedVelocity.setLength(hardCap);
+    }
 
     world.player.velocity.copy(projectedVelocity);
     this.playerBody.position.addScaledVector(world.player.velocity, dt);

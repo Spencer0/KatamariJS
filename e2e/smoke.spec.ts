@@ -84,6 +84,27 @@ test('game boots, shows loading progress, supports pause menu, and handles water
   expect(wOnly.leftActive).toBeTruthy();
   expect(wOnly.rightActive).toBeFalsy();
 
+  await page.keyboard.down('w');
+  await page.keyboard.down('ArrowUp');
+  await page.waitForTimeout(1200);
+  const forwardRun = await page.evaluate(() => (
+    (window as unknown as {
+      __katamariDebug: {
+        driveVector: () => {
+          forward: number;
+          right: number;
+          intentForward: number;
+          intentRight: number;
+          leftActive: boolean;
+          rightActive: boolean;
+        };
+      };
+    }).__katamariDebug.driveVector()
+  ));
+  await page.keyboard.up('w');
+  await page.keyboard.up('ArrowUp');
+  expect(forwardRun.forward).toBeGreaterThan(2.5);
+
   const manifestErrors = consoleErrors.filter((msg) => msg.includes('Failed to load manifest'));
   const manifestFailures = failedRequests.filter((msg) => msg.includes('assets.manifest.json'));
 

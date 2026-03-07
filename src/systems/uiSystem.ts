@@ -7,6 +7,7 @@ export interface HudElements {
   radius: HTMLSpanElement;
   angularVelocity: HTMLSpanElement;
   linearVelocity: HTMLSpanElement;
+  speedRatio: HTMLSpanElement;
   heading: HTMLSpanElement;
   target: HTMLSpanElement;
   biome: HTMLSpanElement;
@@ -30,6 +31,7 @@ export function createHud(container: HTMLElement, handlers: HudHandlers): HudEle
   const radius = document.createElement('span');
   const angularVelocity = document.createElement('span');
   const linearVelocity = document.createElement('span');
+  const speedRatio = document.createElement('span');
   const heading = document.createElement('span');
   const target = document.createElement('span');
   const biome = document.createElement('span');
@@ -44,7 +46,7 @@ export function createHud(container: HTMLElement, handlers: HudHandlers): HudEle
   const loadingLabel = document.createElement('div');
   loadingLabel.className = 'loading-label';
 
-  root.append(score, radius, angularVelocity, linearVelocity, heading, target, biome, phase, loadingLabel, loadingShell);
+  root.append(score, radius, angularVelocity, linearVelocity, speedRatio, heading, target, biome, phase, loadingLabel, loadingShell);
 
   const pauseMenu = document.createElement('div');
   pauseMenu.className = 'pause-menu hidden';
@@ -69,6 +71,7 @@ export function createHud(container: HTMLElement, handlers: HudHandlers): HudEle
     radius,
     angularVelocity,
     linearVelocity,
+    speedRatio,
     heading,
     target,
     biome,
@@ -88,6 +91,7 @@ export class UISystem {
     this.hud.radius.textContent = `Radius: ${world.player.radius.toFixed(2)}`;
     this.hud.angularVelocity.textContent = `Angular Vel: ${world.player.angularVelocity.length().toFixed(2)} rad/s`;
     this.hud.linearVelocity.textContent = `Linear Vel: ${world.player.velocity.length().toFixed(2)} u/s`;
+    this.hud.speedRatio.textContent = `Speed Ratio: ${(world.player.velocity.length() / Math.max(0.001, world.player.radius)).toFixed(2)}`;
     this.hud.heading.textContent = `Heading: (${world.player.heading.x.toFixed(2)}, ${world.player.heading.z.toFixed(2)})`;
     this.hud.target.textContent = `Goal: ${world.config.targetWinRadius.toFixed(2)}`;
     this.hud.biome.textContent = `Biome: ${biomeForPosition(world.playerPosition).toUpperCase()}`;
