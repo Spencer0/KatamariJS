@@ -1,6 +1,7 @@
 import { Matrix3, Quaternion, Vector3 } from 'three';
 import type {
   CompositeBodyState,
+  HandContactDebugState,
   ProtrusionState,
   RollingContactState,
   TorqueInputState,
@@ -8,6 +9,12 @@ import type {
 
 const tmpDir = new Vector3();
 const tmpWorld = new Vector3();
+const tmpAxis = new Vector3();
+const tmpLeftInput = new Vector3();
+const tmpRightInput = new Vector3();
+const tmpForceLeft = new Vector3();
+const tmpForceRight = new Vector3();
+const tmpIntent = new Vector3();
 
 function identityTensor(): Matrix3 {
   return new Matrix3().set(
@@ -217,4 +224,114 @@ export function clampVectorMagnitude(v: Vector3, max: number): void {
   if (v.length() > max) {
     v.setLength(max);
   }
+}
+
+function applyDeadzone(v: Vector3, deadzone: number): Vector3 {
+  const mag = v.length();
+  if (mag <= deadzone) {
+    return v.set(0, 0, 0);
+  }
+  const scaled = (mag - deadzone) / (1 - deadzone);
+  return v.normalize().multiplyScalar(Math.max(0, Math.min(1, scaled)));
+}
+
+function rotateToward(base: Vector3, toward: Vector3, angleRad: number): Vector3 {
+  tmpAxis.copy(base).cross(toward);
+  if (tmpAxis.lengthSq() < 1e-8) {
+    return base.clone();
+  }
+  return base.clone().applyAxisAngle(tmpAxis.normalize(), angleRad).normalize();
+}
+
+export function computeHandContactState(
+  up: Vector3,
+  forward: Vector3,
+  right: Vector3,
+  leftStick: { x: number; y: number },
+  rightStick: { x: number; y: number },
+  tuning: {
+    handContactDownDeg: number;
+    handContactTowardCameraDeg: number;
+    handContactLateralDeg: number;
+    handForceStrength: number;
+    inputDeadzone: number;
+  },
+): {
+  leftAnchor: Vector3;
+  rightAnchor: Vector3;
+  leftForce: Vector3;
+  rightForce: Vector3;
+  leftActive: boolean;
+  rightActive: boolean;
+  netForce: Vector3;
+  netIntent: Vector3;
+} {
+  const towardViewer = forward.clone().multiplyScalar(-1);
+  const downRad = (tuning.handContactDownDeg * Math.PI) / 180;
+  const towardRad = (tuning.handContactTowardCameraDeg * Math.PI) / 180;
+  const lateralRad = (tuning.handContactLateralDeg * Math.PI) / 180;
+
+  const leftToward = towardViewer.clone().applyAxisAngle(right, towardRad).normalize();
+  const rightToward = towardViewer.clone().applyAxisAngle(right, towardRad).normalize();
+  const leftAim = leftToward.applyAxisAngle(towardViewer, lateralRad).normalize();
+  const rightAim = rightToward.applyAxisAngle(towardViewer, -lateralRad).normalize();
+
+  const leftAnchor = rotateToward(up, leftAim, downRad);
+  const rightAnchor = rotateToward(up, rightAim, downRad);
+
+  tmpLeftInput.set(leftStick.x, leftStick.y, 0);
+  tmpRightInput.set(rightStick.x, rightStick.y, 0);
+  applyDeadzone(tmpLeftInput, tuning.inputDeadzone);
+  applyDeadzone(tmpRightInput, tuning.inputDeadzone);
+
+  tmpForceLeft.copy(right).multiplyScalar(tmpLeftInput.x).addScaledVector(forward, tmpLeftInput.y);
+  tmpForceRight.copy(right).multiplyScalar(tmpRightInput.x).addScaledVector(forward, tmpRightInput.y);
+
+  tmpForceLeft.projectOnPlane(leftAnchor);
+  tmpForceRight.projectOnPlane(rightAnchor);
+
+  const leftMag = tmpForceLeft.length();
+  const rightMag = tmpForceRight.length();
+  if (leftMag > 1e-6) {
+    tmpForceLeft.normalize().multiplyScalar(leftMag * tuning.handForceStrength);
+  } else {
+    tmpForceLeft.set(0, 0, 0);
+  }
+  if (rightMag > 1e-6) {
+    tmpForceRight.normalize().multiplyScalar(rightMag * tuning.handForceStrength);
+  } else {
+    tmpForceRight.set(0, 0, 0);
+  }
+
+  const netForce = tmpForceLeft.clone().add(tmpForceRight);
+  tmpIntent.copy(forward).multiplyScalar(tmpLeftInput.y + tmpRightInput.y);
+  tmpIntent.addScaledVector(right, tmpLeftInput.x + tmpRightInput.x);
+
+  return {
+    leftAnchor,
+    rightAnchor,
+    leftForce: tmpForceLeft.clone(),
+    rightForce: tmpForceRight.clone(),
+    leftActive: leftMag > 1e-4,
+    rightActive: rightMag > 1e-4,
+    netForce,
+    netIntent: tmpIntent.projectOnPlane(up).normalize(),
+  };
+}
+
+export function writeHandContactDebug(
+  target: HandContactDebugState,
+  leftAnchor: Vector3,
+  rightAnchor: Vector3,
+  leftForce: Vector3,
+  rightForce: Vector3,
+  leftActive: boolean,
+  rightActive: boolean,
+): void {
+  target.leftAnchor.copy(leftAnchor);
+  target.rightAnchor.copy(rightAnchor);
+  target.leftForceDir.copy(leftForce).normalize();
+  target.rightForceDir.copy(rightForce).normalize();
+  target.leftActive = leftActive;
+  target.rightActive = rightActive;
 }

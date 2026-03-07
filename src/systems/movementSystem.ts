@@ -3,9 +3,10 @@ import type { Camera, Object3D } from 'three';
 import {
   approximateAngularAcceleration,
   clampVectorMagnitude,
+  computeHandContactState,
   estimateRollingContact,
   lowestSupportDirectionWorld,
-  torqueInputFromDirection,
+  writeHandContactDebug,
 } from '../game/compositePhysics';
 import { sampleCurve } from '../game/logic';
 import type { WorldState } from '../game/types';
@@ -13,11 +14,14 @@ import type { WorldState } from '../game/types';
 const radialUp = new Vector3();
 const headingForward = new Vector3();
 const headingRight = new Vector3();
-const desiredRollDir = new Vector3();
-const forwardDir = new Vector3();
-const lateralDir = new Vector3();
+const cameraForward = new Vector3();
+const leftArm = new Vector3();
+const rightArm = new Vector3();
 const torqueWorld = new Vector3();
-const spinTorque = new Vector3();
+const leftTorque = new Vector3();
+const rightTorque = new Vector3();
+const spinAssistTorque = new Vector3();
+const netIntent = new Vector3();
 const settleTorque = new Vector3();
 const angularDelta = new Vector3();
 const linearFromRoll = new Vector3();
@@ -33,49 +37,58 @@ export class MovementSystem {
     radialUp.copy(this.playerBody.position).normalize();
     downWorld.copy(radialUp).multiplyScalar(-1);
 
+    this.camera.getWorldDirection(cameraForward);
+    cameraForward.multiplyScalar(-1).projectOnPlane(radialUp);
+    if (cameraForward.lengthSq() < 1e-6) {
+      cameraForward.copy(world.player.heading).projectOnPlane(radialUp);
+    }
+    if (cameraForward.lengthSq() < 1e-6) {
+      cameraForward.copy(worldUp).projectOnPlane(radialUp);
+    }
+    if (cameraForward.lengthSq() < 1e-6) {
+      cameraForward.set(0, 0, 1).projectOnPlane(radialUp);
+    }
+    cameraForward.normalize();
+
     headingForward.copy(world.player.heading).projectOnPlane(radialUp);
     if (headingForward.lengthSq() < 1e-6) {
-      this.camera.getWorldDirection(headingForward);
-      headingForward.multiplyScalar(-1).projectOnPlane(radialUp);
-      if (headingForward.lengthSq() < 1e-6) {
-        headingForward.copy(worldUp).projectOnPlane(radialUp);
-      }
-      if (headingForward.lengthSq() < 1e-6) {
-        headingForward.set(0, 0, 1).projectOnPlane(radialUp);
-      }
+      headingForward.copy(cameraForward);
     }
     headingForward.normalize();
-    headingRight.copy(radialUp).cross(headingForward).normalize();
+    headingRight.copy(radialUp).cross(cameraForward).normalize();
 
-    const leftY = world.input.leftStickY;
-    const rightY = world.input.rightStickY;
-    const leftX = world.input.leftStickX;
-    const rightX = world.input.rightStickX;
+    const handState = computeHandContactState(
+      radialUp,
+      cameraForward,
+      headingRight,
+      { x: world.input.leftStickX, y: world.input.leftStickY },
+      { x: world.input.rightStickX, y: world.input.rightStickY },
+      world.config.movementTuning,
+    );
 
-    const forwardCommand = Math.max(-1, Math.min(1, (leftY + rightY) * 0.5));
-    const lateralCommand = Math.max(-1, Math.min(1, (leftX + rightX) * 0.5));
-    const driveTurn = Math.max(-1, Math.min(1, (rightY - leftY) * 0.5));
-    const sweepTurn = Math.max(-1, Math.min(1, (rightX - leftX) * 0.5));
-    const turnCommand = Math.max(-1, Math.min(1, driveTurn + (sweepTurn * 0.75)));
+    leftArm.copy(handState.leftAnchor).multiplyScalar(world.player.radius);
+    rightArm.copy(handState.rightAnchor).multiplyScalar(world.player.radius);
 
-    forwardDir.copy(headingForward).multiplyScalar(forwardCommand);
-    lateralDir.copy(headingRight).multiplyScalar(lateralCommand * 0.55);
-    desiredRollDir.copy(forwardDir).add(lateralDir);
+    leftTorque.copy(leftArm).cross(handState.leftForce);
+    rightTorque.copy(rightArm).cross(handState.rightForce);
 
-    let rollMagnitude = desiredRollDir.length();
-    if (rollMagnitude > 1e-5) {
-      desiredRollDir.normalize();
-      rollMagnitude = Math.min(1, rollMagnitude);
+    headingForward.copy(world.player.heading).projectOnPlane(radialUp);
+    if (headingForward.lengthSq() < 1e-6) {
+      headingForward.copy(cameraForward);
     }
+    headingForward.normalize();
 
     const speedMultiplier = world.input.boost ? world.config.boostMultiplier : 1;
-    const torqueState = torqueInputFromDirection(desiredRollDir, rollMagnitude, 1);
-
-    torqueWorld
-      .copy(torqueState.desiredTangentDir)
-      .multiplyScalar(world.config.movementTuning.torqueStrength * torqueState.magnitude * speedMultiplier);
-    spinTorque.copy(radialUp).multiplyScalar(-turnCommand * world.config.movementTuning.torqueStrength * 0.66 * speedMultiplier);
-    torqueWorld.add(spinTorque);
+    torqueWorld.copy(leftTorque).add(rightTorque).multiplyScalar(speedMultiplier);
+    spinAssistTorque
+      .copy(radialUp)
+      .multiplyScalar(
+        (world.input.leftStickY - world.input.rightStickY)
+        * world.config.movementTuning.handForceStrength
+        * world.config.movementTuning.spinAssist
+        * speedMultiplier,
+      );
+    torqueWorld.add(spinAssistTorque);
 
     angularDelta.copy(
       approximateAngularAcceleration(
@@ -87,7 +100,7 @@ export class MovementSystem {
 
     world.player.angularVelocity.addScaledVector(angularDelta, dt);
 
-    if (torqueState.magnitude < 0.08 && Math.abs(turnCommand) < 0.08) {
+    if (!handState.leftActive && !handState.rightActive) {
       const lowDir = lowestSupportDirectionWorld(world.player.composite, world.player.orientation, downWorld);
       settleTorque.copy(lowDir).cross(downWorld).multiplyScalar(world.config.movementTuning.settleTorque);
       world.player.angularVelocity.addScaledVector(settleTorque, dt);
@@ -113,15 +126,25 @@ export class MovementSystem {
       radialUp,
     );
     world.player.rollingContact = rollingContact;
+    writeHandContactDebug(
+      world.player.handContact,
+      handState.leftAnchor,
+      handState.rightAnchor,
+      handState.leftForce,
+      handState.rightForce,
+      handState.leftActive,
+      handState.rightActive,
+    );
 
     linearFromRoll.copy(world.player.angularVelocity).cross(radialUp).multiplyScalar(rollingContact.effectiveRadius);
 
-    if (Math.abs(turnCommand) > 0.001) {
-      const headingTurnRate = 2.1 + Math.abs(forwardCommand) * 0.6;
-      headingForward.applyAxisAngle(radialUp, -turnCommand * headingTurnRate * dt).normalize();
-    }
-    if (rollMagnitude > 0.12) {
-      headingForward.lerp(desiredRollDir, Math.min(1, dt * 4.2)).normalize();
+    netIntent.copy(handState.netIntent).projectOnPlane(radialUp);
+    if (netIntent.lengthSq() > 1e-5) {
+      netIntent.normalize();
+      world.player.intentDirection.copy(netIntent);
+      headingForward.lerp(netIntent, Math.min(1, dt * world.config.movementTuning.headingResponsiveness)).normalize();
+    } else {
+      world.player.intentDirection.set(0, 0, 0);
     }
     world.player.heading.copy(headingForward);
 

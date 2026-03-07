@@ -53,6 +53,14 @@ export interface MovementTuning {
   maxAngularSpeed: number;
   supportSampleCount: number;
   torqueStrength: number;
+  handContactDownDeg: number;
+  handContactTowardCameraDeg: number;
+  handContactLateralDeg: number;
+  handForceStrength: number;
+  spinAssist: number;
+  headingResponsiveness: number;
+  inputDeadzone: number;
+  cameraHeadingLag: number;
 }
 
 export interface HazardZone {
@@ -108,6 +116,15 @@ export interface RollingContactState {
   isStable: boolean;
 }
 
+export interface HandContactDebugState {
+  leftAnchor: Vector3;
+  rightAnchor: Vector3;
+  leftForceDir: Vector3;
+  rightForceDir: Vector3;
+  leftActive: boolean;
+  rightActive: boolean;
+}
+
 export interface TorqueInputState {
   desiredTangentDir: Vector3;
   magnitude: number;
@@ -148,6 +165,8 @@ export interface PlayerBallState {
   velocity: Vector3;
   angularVelocity: Vector3;
   heading: Vector3;
+  intentDirection: Vector3;
+  handContact: HandContactDebugState;
   orientation: Quaternion;
   comLocal: Vector3;
   inertiaLocal: Matrix3;

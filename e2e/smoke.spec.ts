@@ -32,6 +32,58 @@ test('game boots, shows loading progress, supports pause menu, and handles water
 
   await expect(page.locator('.phase')).toContainText('Roll around the planet', { timeout: 5000 });
 
+  const map = async (left: { x: number; y: number }, right: { x: number; y: number }) => (
+    page.evaluate(([l, r]) => (
+      (window as unknown as {
+        __katamariDebug: {
+          evaluateMapping: (
+            leftInput: { x: number; y: number },
+            rightInput: { x: number; y: number },
+          ) => { forward: number; right: number; magnitude: number };
+        };
+      }).__katamariDebug.evaluateMapping(l, r)
+    ), [left, right] as const)
+  );
+
+  const wMap = await map({ x: 0, y: 1 }, { x: 0, y: 0 });
+  expect(wMap.forward).toBeGreaterThan(0);
+  expect(wMap.right).toBeGreaterThan(0);
+  const upMap = await map({ x: 0, y: 0 }, { x: 0, y: 1 });
+  expect(upMap.forward).toBeGreaterThan(0);
+  expect(upMap.right).toBeLessThan(0);
+  const bothForwardMap = await map({ x: 0, y: 1 }, { x: 0, y: 1 });
+  expect(Math.abs(bothForwardMap.right)).toBeLessThan(Math.abs(wMap.right));
+
+  const sampleDrive = async (keys: string[]) => {
+    for (const key of keys) {
+      await page.keyboard.down(key);
+    }
+    await page.waitForTimeout(350);
+    const sample = await page.evaluate(() => (
+      (window as unknown as {
+        __katamariDebug: {
+          driveVector: () => {
+            forward: number;
+            right: number;
+            intentForward: number;
+            intentRight: number;
+            leftActive: boolean;
+            rightActive: boolean;
+          };
+        };
+      }).__katamariDebug.driveVector()
+    ));
+    for (const key of keys) {
+      await page.keyboard.up(key);
+    }
+    await page.waitForTimeout(140);
+    return sample;
+  };
+
+  const wOnly = await sampleDrive(['w']);
+  expect(wOnly.leftActive).toBeTruthy();
+  expect(wOnly.rightActive).toBeFalsy();
+
   const manifestErrors = consoleErrors.filter((msg) => msg.includes('Failed to load manifest'));
   const manifestFailures = failedRequests.filter((msg) => msg.includes('assets.manifest.json'));
 

@@ -31,7 +31,7 @@ export class CameraSystem {
     }
     if (targetForward.lengthSq() > 1e-6) {
       targetForward.normalize();
-      const followLag = Math.min(1, dt * 4.6);
+      const followLag = Math.min(1, dt * world.config.movementTuning.cameraHeadingLag);
       this.orbitForward.lerp(targetForward, followLag).normalize();
     }
 

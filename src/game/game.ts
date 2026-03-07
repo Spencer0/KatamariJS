@@ -12,7 +12,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import { createPickupEntity } from '../entities/pickupFactory';
-import { estimateRollingContact, recomputeCompositeBody } from './compositePhysics';
+import { computeHandContactState, estimateRollingContact, recomputeCompositeBody } from './compositePhysics';
 import { calculateRadius, isWaterPosition, safeRespawnPosition } from './logic';
 import { getActivePickups, loadAssetManifest, loadAudioManifest, pickEntriesForBiome } from './manifest';
 import { createInitialWorld } from './world';
@@ -24,6 +24,7 @@ import { PickupSystem } from '../systems/pickupSystem';
 import { createHud, UISystem } from '../systems/uiSystem';
 import { AudioSystem } from '../systems/audioSystem';
 import { DebugPhysicsOverlay } from '../systems/debugPhysicsOverlay';
+import { HandOverlaySystem } from '../systems/handOverlaySystem';
 import type { AssetManifestEntry, BiomeType } from './types';
 
 const planetCenter = new Vector3(0, 0, 0);
@@ -74,6 +75,7 @@ export class Game {
   private readonly pickupSystem: PickupSystem;
   private readonly growthSystem: GrowthSystem;
   private readonly cameraSystem: CameraSystem;
+  private readonly handOverlaySystem: HandOverlaySystem;
   private readonly uiSystem: UISystem;
 
   constructor(private readonly root: HTMLElement) {
@@ -114,6 +116,7 @@ export class Game {
     this.pickupSystem = new PickupSystem(this.playerBody);
     this.growthSystem = new GrowthSystem(this.playerCoreMesh);
     this.cameraSystem = new CameraSystem(this.camera, this.playerBody);
+    this.handOverlaySystem = new HandOverlaySystem(this.scene, this.playerBody, this.camera);
     this.uiSystem = new UISystem(
       createHud(this.root, {
         onReset: this.reset,
@@ -252,6 +255,7 @@ export class Game {
 
     if (this.world.phase !== 'paused') {
       this.cameraSystem.update(dt, this.world);
+      this.handOverlaySystem.update(dt, this.world);
     }
 
     this.debugOverlay.update(this.world);
@@ -285,6 +289,9 @@ export class Game {
     this.world.player.orientation.identity();
     this.playerBody.quaternion.identity();
     this.world.player.heading.set(0, 0, 1).projectOnPlane(next.clone().normalize()).normalize();
+    this.world.player.intentDirection.set(0, 0, 0);
+    this.world.player.handContact.leftActive = false;
+    this.world.player.handContact.rightActive = false;
 
     recomputeCompositeBody(this.world.player.composite, this.world.config.baseMass);
     this.world.player.rollingContact = estimateRollingContact(
@@ -354,5 +361,70 @@ export class Game {
 
   debugPhase(): string {
     return this.world.phase;
+  }
+
+  debugDriveVector(): {
+    forward: number;
+    right: number;
+    intentForward: number;
+    intentRight: number;
+    leftActive: boolean;
+    rightActive: boolean;
+  } {
+    const up = this.playerBody.position.clone().normalize();
+    const forward = new Vector3();
+    this.camera.getWorldDirection(forward);
+    forward.multiplyScalar(-1).projectOnPlane(up);
+    if (forward.lengthSq() < 1e-6) {
+      forward.copy(this.world.player.heading).projectOnPlane(up);
+    }
+    if (forward.lengthSq() < 1e-6) {
+      forward.set(0, 0, 1).projectOnPlane(up);
+    }
+    forward.normalize();
+    const right = up.clone().cross(forward).normalize();
+    const velocity = this.world.player.velocity.clone().projectOnPlane(up);
+    const intent = this.world.player.intentDirection.clone().projectOnPlane(up);
+
+    return {
+      forward: velocity.dot(forward),
+      right: velocity.dot(right),
+      intentForward: intent.dot(forward),
+      intentRight: intent.dot(right),
+      leftActive: this.world.player.handContact.leftActive,
+      rightActive: this.world.player.handContact.rightActive,
+    };
+  }
+
+  debugEvaluateHandMapping(
+    left: { x: number; y: number },
+    rightInput: { x: number; y: number },
+  ): { forward: number; right: number; magnitude: number } {
+    const up = this.playerBody.position.clone().normalize();
+    const forward = new Vector3();
+    this.camera.getWorldDirection(forward);
+    forward.multiplyScalar(-1).projectOnPlane(up);
+    if (forward.lengthSq() < 1e-6) {
+      forward.copy(this.world.player.heading).projectOnPlane(up);
+    }
+    if (forward.lengthSq() < 1e-6) {
+      forward.set(0, 0, 1).projectOnPlane(up);
+    }
+    forward.normalize();
+    const right = up.clone().cross(forward).normalize();
+    const state = computeHandContactState(
+      up,
+      forward,
+      right,
+      left,
+      rightInput,
+      this.world.config.movementTuning,
+    );
+    const tangent = state.netForce.projectOnPlane(up);
+    return {
+      forward: tangent.dot(forward),
+      right: tangent.dot(right),
+      magnitude: tangent.length(),
+    };
   }
 }
