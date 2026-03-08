@@ -251,7 +251,6 @@ export class Game {
   private alignPickupToSurface(entity: PickupEntity, direction: Vector3): void {
     alignQuat.setFromUnitVectors(new Vector3(0, 1, 0), direction);
     entity.mesh.quaternion.copy(alignQuat);
-    entity.mesh.rotateOnAxis(direction, Math.random() * Math.PI * 2);
     entity.mesh.position.copy(
       direction.multiplyScalar(
         this.world.config.worldGeometry.planetRadius + entity.radius + entity.groundOffset,
