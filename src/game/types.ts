@@ -1,4 +1,4 @@
-import type { Matrix3, Mesh, Quaternion, Vector3 } from 'three';
+import type { Matrix3, Object3D, Quaternion, Vector3 } from 'three';
 
 export type AssetCategory = 'pickup' | 'prop' | 'environment';
 export type AssetStatus = 'active' | 'deprecated';
@@ -174,7 +174,7 @@ export interface PickupEntity {
   position: Vector3;
   attachOffset: Vector3;
   attached: boolean;
-  mesh: Mesh;
+  mesh: Object3D;
   attachDepth: number;
   inertiaBias: number;
   massDistributionClass: 'balanced' | 'topheavy' | 'elongated';

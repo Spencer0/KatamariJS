@@ -21,6 +21,7 @@ const axisZ = new Vector3(0, 0, 1);
 const contactDir = new Vector3();
 
 export class DebugPhysicsOverlay {
+  private readonly maxPickupDebugMarkers = 40;
   private group = new Group();
   private pickupGroup = new Group();
   private pickupGroundGroup = new Group();
@@ -114,7 +115,16 @@ export class DebugPhysicsOverlay {
     this.contactArrow.setLength(Math.max(0.5, world.player.rollingContact.effectiveRadius));
 
     if (this.pickupBoundsVisible) {
-      while (this.pickupGroup.children.length < Math.min(40, world.pickups.length)) {
+      const nearestPickups = world.pickups
+        .filter((pickup) => !pickup.attached)
+        .sort((a, b) => {
+          const da = a.mesh.position.distanceToSquared(world.playerPosition);
+          const db = b.mesh.position.distanceToSquared(world.playerPosition);
+          return da - db;
+        })
+        .slice(0, this.maxPickupDebugMarkers);
+
+      while (this.pickupGroup.children.length < this.maxPickupDebugMarkers) {
         const marker = new Mesh(
           new SphereGeometry(1, 8, 8),
           new MeshBasicMaterial({ color: '#00d8ff', wireframe: true }),
@@ -128,12 +138,12 @@ export class DebugPhysicsOverlay {
         this.pickupLabelGroup.add(this.makeLabelSprite('pickup'));
       }
 
-      for (let i = 0; i < this.pickupGroup.children.length; i += 1) {
+      for (let i = 0; i < this.maxPickupDebugMarkers; i += 1) {
         const marker = this.pickupGroup.children[i] as Mesh;
         const groundMarker = this.pickupGroundGroup.children[i] as Mesh;
         let label = this.pickupLabelGroup.children[i] as Sprite;
-        const pickup = world.pickups[i];
-        if (!pickup || pickup.attached) {
+        const pickup = nearestPickups[i];
+        if (!pickup) {
           marker.visible = false;
           groundMarker.visible = false;
           label.visible = false;

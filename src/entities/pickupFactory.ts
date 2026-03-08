@@ -41,18 +41,17 @@ function fallbackMesh(entry: AssetManifestEntry, biome: BiomeType): Mesh {
   return mesh;
 }
 
-function firstMesh(root: Object3D): Mesh | null {
-  let candidate: Mesh | null = null;
+function markRenderable(root: Object3D): void {
   root.traverse((node: Object3D) => {
-    if (!candidate && node instanceof Mesh) {
-      candidate = node;
+    if (node instanceof Mesh) {
+      node.castShadow = true;
+      node.receiveShadow = true;
     }
   });
-  return candidate;
 }
 
-function calibrateVisualRadius(mesh: Mesh, fallback: number): number {
-  tempBox.setFromObject(mesh);
+function calibrateVisualRadius(root: Object3D, fallback: number): number {
+  tempBox.setFromObject(root);
   if (tempBox.isEmpty()) {
     return fallback;
   }
@@ -60,16 +59,16 @@ function calibrateVisualRadius(mesh: Mesh, fallback: number): number {
   return Math.max(fallback * 0.65, tempSphere.radius);
 }
 
-function meshMinY(mesh: Mesh): number {
-  tempBox.setFromObject(mesh);
+function meshMinY(root: Object3D): number {
+  tempBox.setFromObject(root);
   if (tempBox.isEmpty()) {
     return -0.5;
   }
   return tempBox.min.y;
 }
 
-function normalizeMeshToRadius(mesh: Mesh, targetRadius: number): void {
-  tempBox.setFromObject(mesh);
+function normalizeMeshToRadius(root: Object3D, targetRadius: number): void {
+  tempBox.setFromObject(root);
   if (tempBox.isEmpty()) {
     return;
   }
@@ -79,23 +78,18 @@ function normalizeMeshToRadius(mesh: Mesh, targetRadius: number): void {
   }
 
   const scaleFactor = targetRadius / tempSphere.radius;
-  mesh.scale.multiplyScalar(scaleFactor);
+  root.scale.multiplyScalar(scaleFactor);
 }
 
-async function loadVisual(entry: AssetManifestEntry, biome: BiomeType): Promise<Mesh> {
+async function loadVisual(entry: AssetManifestEntry, biome: BiomeType): Promise<Object3D> {
   try {
     const glbPath = entry.glbPath.startsWith('/') ? entry.glbPath.slice(1) : entry.glbPath;
     const glbUrl = new URL(glbPath, window.location.origin + import.meta.env.BASE_URL).toString();
     const gltf = await loader.loadAsync(glbUrl);
-    gltf.scene.scale.setScalar(entry.scale);
-    const mesh = firstMesh(gltf.scene);
-    if (!mesh) {
-      return fallbackMesh(entry, biome);
-    }
-
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    return mesh;
+    const root = gltf.scene;
+    root.scale.setScalar(entry.scale);
+    markRenderable(root);
+    return root;
   } catch {
     return fallbackMesh(entry, biome);
   }
