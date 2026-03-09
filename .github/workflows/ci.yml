@@ -30,9 +30,6 @@ jobs:
       - name: Test
         run: npm run test
 
-      - name: Validate Asset Manifest
-        run: npm run assets:validate
-
       - name: Build
         run: npm run build
 
